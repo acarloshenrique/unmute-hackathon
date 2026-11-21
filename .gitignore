@@ -1,0 +1,29 @@
+# Credenciais e configurações locais
+.env
+.env.*
+!.env.example
+!.env.sample
+*.pem
+*.key
+*.p12
+*.pfx
+secrets/
+credentials*.json
+*.session
+
+# Dependências, builds, cache
+node_modules/
+.next/
+dist/
+build/
+coverage/
+.venv/
+__pycache__/
+.pytest_cache/
+*.log
+
+# Artefatos locais
+recordings/
+.agent-local/
+.DS_Store
+Thumbs.db
