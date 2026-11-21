@@ -34,9 +34,10 @@ export function checkOrigin(req: Request) {
     let allowed = false;
     try {
       const parsed = new URL(origin);
-      allowed =
-        parsed.host === requestHost(req) &&
-        parsed.protocol === new URL(req.url).protocol;
+      const proto = req.headers.get("x-forwarded-proto")
+        ? `${req.headers.get("x-forwarded-proto")}:`
+        : new URL(req.url).protocol;
+      allowed = parsed.host === requestHost(req) && parsed.protocol === proto;
     } catch {
       /* malformed origins are denied */
     }
@@ -47,7 +48,10 @@ export function checkOrigin(req: Request) {
 export function demoLocal(req: Request) {
   requireDemo();
   const hostname = new URL(`http://${requestHost(req)}`).hostname;
-  if (!["localhost", "127.0.0.1", "[::1]"].includes(hostname))
+  if (
+    !["localhost", "127.0.0.1", "[::1]"].includes(hostname) &&
+    process.env.CARECIRCLE_PUBLIC_DEMO !== "true"
+  )
     throw new DomainError(
       "LOCAL_ONLY",
       "Identidades de demonstração disponíveis somente em localhost.",
