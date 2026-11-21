@@ -2,7 +2,7 @@ import {
   Agent,
   AgoraClient,
   Area,
-  DeepgramSTT,
+  AresSTT,
   OpenAI as AgoraOpenAI,
   MiniMaxTTS,
   ExpiresIn,
@@ -123,7 +123,21 @@ export async function startVoice(actor: Actor) {
         enable_metrics: true,
       },
     })
-      .withStt(new DeepgramSTT({ model: "nova-3", language: "pt-BR" }))
+      .withStt(
+        new AresSTT({
+          keywords: [
+            "Lia",
+            "Helena",
+            "Ana",
+            "Pedro",
+            "CareCircle",
+            "remédio",
+            "consulta",
+            "visita",
+            "tarefa",
+          ],
+        }),
+      )
       .withLlm(
         new AgoraOpenAI({
           model: process.env.OPENAI_MODEL || "gpt-4o-mini",
