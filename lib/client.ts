@@ -32,6 +32,7 @@ export type Proposal = {
     items?: Item[];
     assignee_id?: string;
     response?: string;
+    _realtime?: { revision: number; time: string | null; saturday: string };
     changes?: { title?: string; items?: Item[] };
   };
 };

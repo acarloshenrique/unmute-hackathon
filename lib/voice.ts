@@ -1,37 +1,54 @@
-import {
-  Agent,
-  AgoraClient,
-  Area,
-  AresSTT,
-  OpenAI as AgoraOpenAI,
-  MiniMaxTTS,
-  ExpiresIn,
-} from "agora-agents";
+import { AgoraClient, Area, ExpiresIn } from "agora-agents";
 import AgoraToken from "agora-token";
 const { RtcTokenBuilder, RtcRole } = AgoraToken;
 import { randomBytes, randomInt } from "node:crypto";
 import { type Actor, DomainError, hash, profileFor } from "./auth";
 import { audit, id, now, one, rows, run } from "./db";
 import { consent } from "./domain";
-import { LIA_PROMPT } from "./intelligence";
+import { createManagedAgent } from "./managed-agent";
 export const AGENT_UID = 123456;
 function configuration() {
-  const appId = process.env.NEXT_PUBLIC_AGORA_APP_ID,
-    appCertificate = process.env.NEXT_AGORA_APP_CERTIFICATE,
-    url = process.env.CARECIRCLE_PUBLIC_URL;
-  if (!appId || !appCertificate || !url || !process.env.OPENAI_API_KEY)
+  const names = [
+    "NEXT_PUBLIC_AGORA_APP_ID",
+    "NEXT_AGORA_APP_CERTIFICATE",
+    "CARECIRCLE_VOICE_TOOL_URL",
+  ] as const;
+  const missing = names.filter((name) => !process.env[name]);
+  if (missing.length)
     throw new DomainError(
       "AGORA_NOT_CONFIGURED",
-      "Voz real indisponível: configure App ID, App Certificate, OpenAI e URL HTTPS pública. Nenhuma sessão simulada foi iniciada.",
+      `Voz real indisponível. Configuração ausente: ${missing.join(", ")}.`,
       503,
     );
-  if (!url.startsWith("https://"))
+  const url = process.env.CARECIRCLE_VOICE_TOOL_URL!;
+  let parsed: URL;
+  try {
+    parsed = new URL(url);
+  } catch {
     throw new DomainError(
       "HTTPS_REQUIRED",
-      "A URL do backend para Agora precisa usar HTTPS.",
+      "Configure a URL HTTPS do gateway de ferramenta.",
       503,
     );
-  return { appId, appCertificate, url };
+  }
+  if (
+    parsed.protocol !== "https:" ||
+    parsed.username ||
+    parsed.password ||
+    parsed.search ||
+    parsed.hash ||
+    parsed.pathname !== "/"
+  )
+    throw new DomainError(
+      "HTTPS_REQUIRED",
+      "Use somente a origem HTTPS do gateway, sem credenciais, caminho ou query.",
+      503,
+    );
+  return {
+    appId: process.env.NEXT_PUBLIC_AGORA_APP_ID!,
+    appCertificate: process.env.NEXT_AGORA_APP_CERTIFICATE!,
+    url,
+  };
 }
 const clientFor = (c: { appId: string; appCertificate: string }) =>
   new AgoraClient({
@@ -92,71 +109,7 @@ export async function startVoice(actor: Actor) {
   );
   let startedAgentId: string | undefined;
   try {
-    const greeting =
-      "Olá, dona Helena. Sou Lia, assistente virtual do CareCircle. A senhora precisa de alguma coisa?";
-    const agent = new Agent({
-      client: clientFor(c),
-      instructions: LIA_PROMPT,
-      greeting,
-      failureMessage:
-        "Não consegui concluir. Podemos tentar novamente pela tela.",
-      maxHistory: 16,
-      turnDetection: {
-        config: {
-          speech_threshold: 0.5,
-          start_of_speech: {
-            mode: "vad",
-            vad_config: { interrupt_duration_ms: 200, prefix_padding_ms: 300 },
-          },
-          end_of_speech: {
-            mode: "vad",
-            vad_config: { silence_duration_ms: 600 },
-          },
-        },
-      },
-      advancedFeatures: { enable_rtm: true, enable_sal: true },
-      sal: { sal_mode: "locking" },
-      parameters: {
-        audio_scenario: "chorus",
-        data_channel: "rtm",
-        enable_error_message: true,
-        enable_metrics: true,
-      },
-    })
-      .withStt(
-        new AresSTT({
-          keywords: [
-            "Lia",
-            "Helena",
-            "Ana",
-            "Pedro",
-            "CareCircle",
-            "remédio",
-            "consulta",
-            "visita",
-            "tarefa",
-          ],
-        }),
-      )
-      .withLlm(
-        new AgoraOpenAI({
-          model: process.env.OPENAI_MODEL || "gpt-4o-mini",
-          url: `${c.url.replace(/\/$/, "")}/api/voice/llm/${sessionId}`,
-          apiKey: capability,
-          greetingMessage: greeting,
-          failureMessage:
-            "Tive uma dificuldade. O pedido ainda não foi enviado.",
-          maxHistory: 16,
-        }),
-      )
-      .withTts(
-        new MiniMaxTTS({
-          model: "speech_2_6_turbo",
-          ...(process.env.AGORA_TTS_VOICE
-            ? { voiceId: process.env.AGORA_TTS_VOICE }
-            : {}),
-        }),
-      );
+    const agent = createManagedAgent(c, sessionId, capability);
     const session = agent.createSession({
       channel,
       agentUid: String(AGENT_UID),
@@ -172,7 +125,9 @@ export async function startVoice(actor: Actor) {
       agentId,
       sessionId,
     );
-    audit(actor.id, "voice_agent_started", "voice_sessions", sessionId);
+    audit(actor.id, "voice_agent_started", "voice_sessions", sessionId, {
+      mode: "agora_managed",
+    });
     const ttl = 900;
     const token = RtcTokenBuilder.buildTokenWithRtm(
       c.appId,

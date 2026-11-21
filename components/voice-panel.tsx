@@ -14,6 +14,7 @@ import type { RTMClient } from "agora-rtm";
 import type { AgoraVoiceAI } from "agora-agent-client-toolkit";
 import { api } from "@/lib/client";
 import { makeCleanup } from "@/lib/voice-cleanup";
+import { voiceFailure, type VoiceStage } from "@/lib/voice-feedback";
 type State =
   | "idle"
   | "requesting_permission"
@@ -60,6 +61,11 @@ export function VoicePanel({
     [muted, setMuted] = useState(false),
     [caption, setCaption] = useState(""),
     [joined, setJoined] = useState(false),
+    [hasSession, setHasSession] = useState(false),
+    [microphone, setMicrophone] = useState<"off" | "capturing" | "published">(
+      "off",
+    ),
+    [microphoneLevel, setMicrophoneLevel] = useState(0),
     [devices, setDevices] = useState<MediaDeviceInfo[]>([]);
   const refs = useRef<{
     rtc?: IAgoraRTCClient;
@@ -69,6 +75,7 @@ export function VoicePanel({
     session?: Session;
     cleanup?: () => Promise<string[]>;
     timer?: ReturnType<typeof setTimeout>;
+    meter?: ReturnType<typeof setInterval>;
   }>({});
   const cancelled = useRef(false);
   const alive = useRef(true),
@@ -77,11 +84,14 @@ export function VoicePanel({
     cancelled.current = true;
     const r = refs.current;
     clearTimeout(r.timer);
+    clearInterval(r.meter);
     const failures = await r.cleanup?.();
     if (alive.current) {
       setJoined(false);
       setCaption("");
       setMuted(false);
+      setMicrophone("off");
+      setMicrophoneLevel(0);
       setDevices([]);
       if (failures?.includes("stopAgent")) {
         setError(
@@ -90,6 +100,7 @@ export function VoicePanel({
         setState("error");
       } else {
         setState("disconnected");
+        setHasSession(false);
         refs.current = {};
       }
       await onChange();
@@ -115,6 +126,7 @@ export function VoicePanel({
       cancelled.current = true;
       window.removeEventListener("pagehide", pagehide);
       clearTimeout(refs.current.timer);
+      clearInterval(refs.current.meter);
       void refs.current.cleanup?.();
     };
   }, []);
@@ -123,6 +135,21 @@ export function VoicePanel({
     busy.current = true;
     cancelled.current = false;
     const owned = refs.current;
+    let stage: VoiceStage = "microphone";
+    let reportedError = "";
+    function fail(message: string) {
+      reportedError = message;
+      cancelled.current = true;
+      clearTimeout(owned.timer);
+      void owned.cleanup?.().then((failures) => {
+        if (alive.current) {
+          if (!failures.includes("stopAgent")) setHasSession(false);
+          setState("error");
+          setError(reportedError);
+          setJoined(false);
+        }
+      });
+    }
     function ensureActive() {
       if (!alive.current || cancelled.current)
         throw new Error("Conversa cancelada.");
@@ -139,6 +166,7 @@ export function VoicePanel({
           session_id: owned.session.session_id,
         });
         owned.session = undefined;
+        setHasSession(false);
         owned.cleanup = undefined;
       }
       setState("requesting_permission");
@@ -158,12 +186,22 @@ export function VoicePanel({
         return;
       }
       owned.mic = mic;
+      setMicrophone("capturing");
+      owned.meter = setInterval(() => {
+        if (alive.current && mic.getMediaStreamTrack().readyState === "live")
+          setMicrophoneLevel(mic.getVolumeLevel());
+      }, 150);
       setState("connecting");
       const rtc = RTC.createClient({ mode: "rtc", codec: "vp8" });
       owned.rtc = rtc;
       let rtm: RTMClient | undefined, ai: AgoraVoiceAI | undefined;
       owned.cleanup = makeCleanup({
         closeMicrophone: () => {
+          clearInterval(owned.meter);
+          if (alive.current) {
+            setMicrophone("off");
+            setMicrophoneLevel(0);
+          }
           mic.stop();
           mic.close();
         },
@@ -185,13 +223,22 @@ export function VoicePanel({
             });
         },
       });
+      mic.on("track-ended", () => {
+        if (alive.current && !cancelled.current)
+          fail(
+            "A captura do microfone foi interrompida pelo navegador. Confira o dispositivo e tente novamente.",
+          );
+      });
+      stage = "agent";
       const session = await api<Session>("/api/voice/start", {});
       owned.session = session;
+      if (alive.current) setHasSession(true);
       if (!alive.current || cancelled.current) {
         await api("/api/voice/stop", { session_id: session.session_id });
         await owned.cleanup();
         return;
       }
+      stage = "rtm";
       const { default: AgoraRTM } = await import("agora-rtm");
       rtm = new AgoraRTM.RTM(session.app_id, String(session.uid));
       owned.rtm = rtm;
@@ -213,9 +260,9 @@ export function VoicePanel({
       });
       rtc.on("user-left", (user) => {
         if (user.uid === session.agent_uid && alive.current) {
-          setJoined(false);
-          setState("error");
-          setError("Lia saiu do canal. Encerre e tente novamente.");
+          fail(
+            "Lia saiu do canal. O microfone foi desligado. Tente novamente.",
+          );
         }
       });
       rtc.on("user-published", async (user, media) => {
@@ -230,6 +277,7 @@ export function VoicePanel({
             setError("Não foi possível reproduzir o áudio da Lia.");
         }
       });
+      stage = "rtc";
       await rtc.join(
         session.app_id,
         session.channel,
@@ -237,6 +285,7 @@ export function VoicePanel({
         session.uid,
       );
       ensureActive();
+      stage = "toolkit";
       const toolkit = await import("agora-agent-client-toolkit");
       ai = await toolkit.AgoraVoiceAI.init({
         rtcEngine: rtc,
@@ -263,17 +312,15 @@ export function VoicePanel({
             setState("interrupted");
         }
       });
-      ai.on(toolkit.AgoraVoiceAIEvents.AGENT_ERROR, () => {
-        if (alive.current) {
-          setState("error");
-          setError(
-            "A Agora informou uma falha no agente. Encerre e confira a configuração.",
-          );
-        }
+      ai.on(toolkit.AgoraVoiceAIEvents.AGENT_ERROR, (_, event) => {
+        // Never log provider payloads, keys or conversation text.
+        fail(voiceFailure(event, "agent"));
       });
       ai.subscribeMessage(session.channel);
+      stage = "publish";
       await rtc.publish([mic]);
       ensureActive();
+      setMicrophone("published");
       try {
         setDevices(await RTC.getPlaybackDevices(true));
       } catch {
@@ -282,7 +329,10 @@ export function VoicePanel({
       owned.timer = setTimeout(() => void cleanup(), 14 * 60000 + 30000);
       await onChange();
     } catch (err) {
-      await owned.cleanup?.();
+      clearInterval(owned.meter);
+      const failures = await owned.cleanup?.();
+      if (alive.current && !failures?.includes("stopAgent"))
+        setHasSession(false);
       // Re-run local teardown for resources acquired after cancellation.
       if (cancelled.current || !alive.current) {
         owned.mic?.stop();
@@ -305,16 +355,7 @@ export function VoicePanel({
       }
       if (alive.current) {
         setState("error");
-        setError(
-          err instanceof Error &&
-            ["NotAllowedError", "PERMISSION_DENIED"].some(
-              (c) => err.name.includes(c) || err.message.includes(c),
-            )
-            ? "O microfone não foi autorizado. Você pode liberar o acesso nas configurações do navegador."
-            : err instanceof Error
-              ? err.message
-              : "Não foi possível iniciar a conversa.",
-        );
+        setError(reportedError || voiceFailure(err, stage));
         setJoined(false);
       }
     } finally {
@@ -349,6 +390,28 @@ export function VoicePanel({
           ? "Conexão do agente observada no canal."
           : "A conversa só começa quando você escolher entrar."}
       </p>
+      <div className="microphone-status">
+        <p role="status">
+          {microphone === "off"
+            ? "Microfone desligado"
+            : microphone === "capturing"
+              ? "Microfone captando neste dispositivo; ainda não publicado."
+              : muted
+                ? "Microfone silenciado"
+                : "Microfone publicado na Agora"}
+        </p>
+        {microphone !== "off" && (
+          <label>
+            Nível do microfone
+            <meter
+              aria-label="Nível do microfone"
+              min={0}
+              max={1}
+              value={muted ? 0 : microphoneLevel}
+            />
+          </label>
+        )}
+      </div>
       <div className="voice-actions">
         {!active ? (
           <button
@@ -396,7 +459,7 @@ export function VoicePanel({
           {error}
         </div>
       )}
-      {state === "error" && refs.current.session && (
+      {state === "error" && hasSession && (
         <button
           className="subtle-button"
           onClick={async () => {
@@ -405,6 +468,7 @@ export function VoicePanel({
                 session_id: refs.current.session?.session_id,
               });
               refs.current = {};
+              setHasSession(false);
               setState("disconnected");
               setError("");
               await onChange();

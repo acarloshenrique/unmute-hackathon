@@ -60,7 +60,11 @@ test("jornada persistida: agenda → convite → consentimento → tarefa → ac
   ).toBeVisible();
   await expect(
     page.getByRole("button", { name: "Conversar com Lia", exact: true }),
-  ).toBeDisabled();
+  ).toBeVisible();
+  // This journey never starts audio, whether credentials exist or not.
+  await expect(
+    page.getByText("Microfone desligado", { exact: true }),
+  ).toBeVisible();
   await page.getByText("Prefiro escrever meu pedido", { exact: true }).click();
   await page
     .getByLabel("Itens, separados por vírgula")

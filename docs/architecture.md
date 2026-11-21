@@ -1,43 +1,31 @@
-# Arquitetura CareCircle
+# Arquitetura CareCircle — Agora gerenciada
 
-## Decisão e escopo
-Next.js App Router, TypeScript estrito, SQLite em disco (Node 24), ferramentas Zod e OpenAI no servidor. Um processo scheduler independente consulta ocorrências vencidas. A aplicação serve somente em 127.0.0.1 por padrão. A demonstração usa três identidades fictícias e cookies opacos HttpOnly persistidos; não constitui autenticação empresarial. Sem Supabase configurado, nenhuma integração Supabase é anunciada como ativa.
+## Decisão atual
+Uma única arquitetura de voz, adaptada do quickstart oficial Agora já inspecionado: Agora RTC/RTM + Conversational AI, com Agora ARES, GPT-4o-mini e MiniMax Speech 2.6 Turbo fornecidos em modo gerenciado pela Agora. Sem chaves próprias dos provedores e sem OpenAI Realtime. O GPT usado pela Agora é um modelo de terceiro; conta, credenciais e contratação da voz ficam na Agora.
 
 ## Fronteiras
-Navegador → API com sessão autenticada → serviços de domínio → SQLite.
-Navegador → Agora RTC (microfone/áudio) + RTM (legendas/estado).
-Servidor → agora-agents (start/stop), agora-token (token RTC+RTM com validade curta).
-Agora STT → endpoint HTTPS compatível com Chat Completions e token por sessão → OpenAI com ferramentas → texto SSE → Agora TTS → navegador.
-Consentimento persistido e confirmação de ação por interface são obrigatórios para compartilhar. A fala do modelo não concede autorização. Propostas de tarefas não notificam familiares; a pessoa revisa e confirma no seu navegador.
+- `components/voice-panel.tsx`: permissão, captura, medidor local, RTC/RTM, reprodução, estado e liberação do microfone. Não grava áudio ou histórico de legendas.
+- `lib/voice.ts`: autenticação do idoso, consentimento, sessão persistida, credencial RTC/RTM curta, criação/encerramento do agente e limpeza de sessões pendentes.
+- `lib/managed-agent.ts`: único pipeline de voz, baseado no quickstart. Reconhecimento pt-BR, prompt Lia, voz portuguesa, VAD compatível, RTM e ferramenta REST em `llm.tools`. Não lê chave OpenAI.
+- Agora: ARES → LLM com ferramenta → TTS; transporta áudio pelo RTC. `AgentSession` infere os presets gerenciados dos modelos suportados.
+- `scripts/voice-tool-gateway.ts`: somente POST da ferramenta na porta 3002. Outros caminhos, métodos e queries recebem 404. Não encaminha cookies.
+- `lib/realtime-request.ts`: nome histórico do módulo de proposta, reaproveitado sem nova stack. Valida sessão, pessoa, consentimento e destinatário; prepara/revisa um único rascunho privado.
+- `lib/domain.ts`: confirmação visual com revisão, transação, chave idempotente e tarefa/notificação únicas. Aceite e autorização por família permanecem no domínio.
+- SQLite: persistência existente, sem migração nova. Autorizações sempre derivadas da sessão do servidor.
+- Copilot textual: integração OpenAI opcional preexistente, com resposta a partir dos registros quando indisponível. Não participa da voz.
 
-## Fonte e mapa de adaptação
-Quickstart oficial: https://github.com/AgoraIO-Conversational-AI/agent-quickstart-nextjs
-Commit inspecionado: 24374411cdd809701e2a39466f4f97d52e23f173.
+## Fluxo e autorização
+Helena liga microfone → sessão com UID e canal restritos → conversa em português via Agora → ferramenta prepara rascunho → tela atualiza a revisão → Helena confirma visualmente → domínio persiste uma tarefa e notificação → Pedro aceita.
 
-| Fonte oficial | CareCircle | Adaptação |
-|---|---|---|
-| app/api/generate-agora-token/route.ts | lib/voice.ts | token RTC+RTM, UID/canal gerados pelo servidor, 15 minutos |
-| app/api/invite-agent/route.ts | lib/voice.ts | Agent/AgoraClient, português, custom LLM por sessão |
-| app/api/stop-conversation/route.ts | lib/voice.ts | stop idempotente, propriedade da sessão |
-| components/LandingPage.tsx | components/voice-panel.tsx | importação no navegador, RTM login/subscribe, cleanup |
-| components/ConversationComponent.tsx | components/voice-panel.tsx | RTC publish/subscribe e toolkit para estados/legendas |
-| lib/chat-completions.ts | app/api/voice/llm/[sessionId]/route.ts | SSE compatível, execução de ferramentas no servidor |
+Modelo não autoriza compartilhamento. IDs de família e usuário enviados pelo modelo são recusados. A capacidade da ferramenta é curta, armazenada somente como hash e revogada ao encerrar ou revogar consentimento. Correção atrasada não pode substituir a revisão atual e confirmação antiga não compartilha texto antigo. Cancelamento não cria cartão.
 
-OpenAI Realtime não foi escolhido: o caminho exato de ferramentas exigido não foi comprovado nessa integração. O quickstart e o servidor custom LLM oficial documentam STT → LLM → TTS; usamos apenas esse caminho.
+## Operação e evidência
+Servidor Next em 127.0.0.1:3000; gateway em 127.0.0.1:3002; túnel apenas no gateway. Scheduler persistido cria convites e não liga áudio sem interação. Pessoas e fixtures são fictícias e identificadas na UI. Não há áudio bruto ou transcrição completa persistidos.
 
-## Limites de confiança
-IDs de família e ator nunca vêm do modelo. A sessão determina o ator. Eventos e consultas filtram perfil, família, destinatário e consentimento. Sem transcrições integrais em disco; apenas eventos autorizados e propostas mínimas. Não há fatos clínicos derivados. Silêncio nunca vira confirmação.
+Início HTTP, RUNNING ou conexão RTC são evidências de etapas, não de conversa completa. Consulte `managed-voice-validation.md` para verificações observadas. Não anunciar voz bidirecional, interrupção ou latência até medir em chamada. Sem novos painéis, schema ou integrações externas.
 
-## Tempo e concorrência
-Rotinas únicas ou diárias em America/Sao_Paulo. Índice único por rotina/instante. Transação IMMEDIATE para reservar ocorrência e gravar convite, evento e notificações atomicamente. Horário silencioso 21h–8h, tentativas limitadas com backoff e relógio de demonstração separado, persistido. O worker de produção nunca usa o relógio de demonstração.
-
-## Evolução
-migrations/postgres.sql cria a estrutura equivalente com RLS. A migração não liga automaticamente Supabase Auth/Realtime: isso exige adaptador, identidade e testes antes de hospedar com dados reais.
-
-## Evidência de voz
-Fonte oficial inspecionada. Sessão Agora e áudio bidirecional ainda NÃO comprovados: faltam credenciais e endpoint HTTPS público. Não tratar compilação ou demo textual como validação de voz.
-## Versões efetivamente instaladas
-Next.js 16.4.6; React 19.3.1; agora-agents 2.15.0; agora-rtc-sdk-ng 4.24.10; agora-rtm 2.3.0; agora-agent-client-toolkit 2.10.0; agora-token 2.0.7; OpenAI SDK 6.49.0; Zod 4.6.7. Fonte reproduzível: package-lock.json.
-
-## Prova externa versus esta aplicação
-Notas de outros integrantes podem descrever sessões em outra stack. Elas não substituem a validação do CareCircle desta entrega. Os campos de runtime desta aplicação continuam: quickstart_repo_cloned=true; agent_join_verified=false; rtc_client_connected=false. A chamada real OpenAI retornou 429/credit_balance_exhausted. O copilot usa consulta direta com aviso quando o provedor falha.
+## Fontes
+- Quickstart inspecionado localmente em `.agent-local/agora-quickstart`, commit `24374411cdd809701e2a39466f4f97d52e23f173`.
+- [Modo gerenciado](https://docs.agora.io/en/ai/build/managed-mode).
+- [Ferramentas REST](https://docs.agora.io/en/ai/platform/build/tools/custom-tools).
+- Tipos e implementação de `agora-agents@2.15.0` instalados, incluindo inferência de presets por `AgentSession`.

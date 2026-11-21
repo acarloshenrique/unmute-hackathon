@@ -1,3 +1,5 @@
+> Relatório histórico anterior à migração de voz. Credenciais/gateway já estão configurados localmente; a voz atual usa Agora gerenciada, sem chave própria OpenAI. Consulte [validação atual](managed-voice-validation.md) e [arquitetura](architecture.md) para resultados e limites vigentes.
+
 # Relatório de validação · 21/11/2026
 
 ## Resultado final observado

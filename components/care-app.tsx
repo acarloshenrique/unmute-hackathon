@@ -308,14 +308,26 @@ export function CareApp({ view }: { view: View }) {
                 <div className="card">
                   <h2>Prepare a apresentação</h2>
                   <ol className="demo-steps">
-                    <li>Entre como Ana e consulte o dia da Helena.</li>
                     <li>
-                      Agende uma conversa às 16h na data do relógio de teste.
+                      Entre como Helena e autorize compartilhar pedidos com
+                      Pedro.
                     </li>
-                    <li>Avance até 16h e dispare a rotina.</li>
-                    <li>Entre como Helena, inicie a voz Agora e peça ajuda.</li>
-                    <li>Revise o pedido e confirme o compartilhamento.</li>
-                    <li>Volte como Ana para aceitar a tarefa.</li>
+                    <li>
+                      Inicie a conversa Agora e diga: “Lia, pede pro Pedro me
+                      acompanhar à feira sábado.”
+                    </li>
+                    <li>
+                      Corrija: “às dez da manhã”. Confira o rascunho atualizado.
+                    </li>
+                    <li>Revise e toque em Confirmar e compartilhar.</li>
+                    <li>
+                      Entre como Pedro e toque em Posso ajudar. Recarregue para
+                      conferir o aceite.
+                    </li>
+                    <li>
+                      Em outro teste, cancele o rascunho: nenhum cartão deve ser
+                      enviado.
+                    </li>
                   </ol>
                   <div className="button-row">
                     <button
@@ -1067,6 +1079,12 @@ function Elder({
                       : "Compartilhar meu relato")}
                 </h3>
                 <p>{p.payload.response}</p>
+                {p.payload._realtime && (
+                  <p role="status">
+                    Pedido atualizado · revise os detalhes antes de
+                    compartilhar.
+                  </p>
+                )}
                 <ul>
                   {(p.payload.items || p.payload.changes?.items || []).map(
                     (i) => (
@@ -1088,6 +1106,7 @@ function Elder({
                     onClick={() =>
                       void act("confirm_proposal", {
                         proposal_id: p.id,
+                        revision: p.payload._realtime?.revision,
                         confirmed: true,
                       }).catch(() => {})
                     }
@@ -1099,6 +1118,7 @@ function Elder({
                     onClick={() =>
                       void act("confirm_proposal", {
                         proposal_id: p.id,
+                        revision: p.payload._realtime?.revision,
                         confirmed: false,
                       }).catch(() => {})
                     }
@@ -1165,7 +1185,7 @@ function Elder({
                 onChange={(e) => setText(e.target.value)}
                 maxLength={1500}
                 required
-                placeholder="Preciso de leite, pão e café."
+                placeholder="Pede pro Pedro me acompanhar à feira sábado."
               />
             </label>
             <button className="button button-small" disabled={busy}>
@@ -1291,14 +1311,14 @@ function ManualRequest({
           Meu pedido
           <input
             name="title"
-            defaultValue="Ajuda com as compras"
+            defaultValue="Companhia para ir à feira no sábado"
             required
             maxLength={160}
           />
         </label>
         <label>
           Itens, separados por vírgula
-          <input name="items" placeholder="leite, pão, café" maxLength={500} />
+          <input name="items" placeholder="Sábado, às 10:00" maxLength={500} />
         </label>
         <label>
           Para quem?

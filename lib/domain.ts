@@ -674,7 +674,11 @@ export function propose(
 export function confirmProposal(actor: Actor, input: unknown) {
   return transaction(() => {
     const d = z
-      .object({ proposal_id: uuid, confirmed: z.boolean() })
+      .object({
+        proposal_id: uuid,
+        confirmed: z.boolean(),
+        revision: z.number().int().positive().optional(),
+      })
       .parse(input);
     const proposal = one(
       "SELECT * FROM proposals WHERE id=? AND actor_id=?",
@@ -684,12 +688,18 @@ export function confirmProposal(actor: Actor, input: unknown) {
     if (!proposal)
       throw new DomainError("FORBIDDEN", "Proposta não autorizada.", 403);
     profileFor(actor, String(proposal.care_profile_id));
+    const payload = JSON.parse(String(proposal.payload));
+    if (payload._realtime && d.revision !== payload._realtime.revision)
+      throw new DomainError(
+        "STALE_PROPOSAL",
+        "O pedido foi corrigido. Revise a versão atual na tela antes de confirmar.",
+        409,
+      );
     if (proposal.status !== "pending") return proposal;
     if (!d.confirmed) {
       run("UPDATE proposals SET status='rejected' WHERE id=?", proposal.id);
       return { status: "rejected" };
     }
-    const payload = JSON.parse(String(proposal.payload));
     let result: unknown;
     if (proposal.kind === "create_task")
       result = createTask(
@@ -854,7 +864,7 @@ export function snapshot(actor: Actor) {
     agora_configured: !!(
       process.env.NEXT_PUBLIC_AGORA_APP_ID &&
       process.env.NEXT_AGORA_APP_CERTIFICATE &&
-      process.env.CARECIRCLE_PUBLIC_URL
+      process.env.CARECIRCLE_VOICE_TOOL_URL
     ),
     openai_configured: !!process.env.OPENAI_API_KEY,
   };

@@ -1,3 +1,5 @@
+> Relatório histórico anterior à migração de voz. Credenciais/gateway já estão configurados localmente; a voz atual usa Agora gerenciada, sem chave própria OpenAI. Consulte [validação atual](managed-voice-validation.md) e [arquitetura](architecture.md) para resultados e limites vigentes.
+
 # Limitações verificadas e pendências
 
 - **P0 completo ainda não comprovado:** a conversa Agora não foi executada. Faltam `NEXT_PUBLIC_AGORA_APP_ID`, `NEXT_AGORA_APP_CERTIFICATE` e `CARECIRCLE_PUBLIC_URL` HTTPS alcançável pela Agora. Também é preciso habilitar RTC, RTM, Conversational AI e provedores gerenciados no projeto.

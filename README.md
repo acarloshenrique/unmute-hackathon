@@ -1,130 +1,79 @@
-# CareCircle
+# CareCircle — voz gerenciada pela Agora
 
-**Cuidar é estar em círculo.** Coordenação familiar com conversas autorizadas, memória estruturada e tarefas compartilhadas.
+**Pipeline gerenciado implementado; conversa de áudio ainda não validada.**
 
-> Protótipo local UNMUTE by Agora. Helena, Ana e Pedro são fictícios; os eventos de demonstração têm selo SIMULAÇÃO. **Voz Agora ainda não validada em runtime.** A chamada real OpenAI de 21/11/2026 retornou 429, `credit_balance_exhausted`. O copilot permanece disponível por consulta direta aos registros, com aviso explícito de IA indisponível.
+CareCircle transforma conversas autorizadas em coordenação familiar. Helena, Ana e Pedro são pessoas fictícias. Cenário único desta demo: Helena pede companhia de Pedro para ir à feira no sábado, corrige para 10h, revisa na tela e confirma. Somente então Pedro recebe um cartão e pode tocar **Posso ajudar**.
 
-## Problema e solução
+## Caminho de voz atual
 
-Pedidos e responsabilidades familiares se perdem entre mensagens. O CareCircle fecha o ciclo: familiar agenda → rotina cria convite → Helena escolhe conversar → Lia prepara proposta → Helena revisa e autoriza → familiar acompanha e aceita a tarefa.
+Microfone → Agora RTC → **Conversational AI gerenciado: Agora ARES → GPT-4o-mini → MiniMax Speech 2.6 Turbo** → Agora RTC → áudio da Lia.
 
-CareCircle não é um chatbot para idosos. É um sistema de coordenação familiar com agentes de voz que transformam conversas autorizadas em ações, informações e acompanhamento. Não faz diagnóstico, aconselhamento médico, monitoramento de saúde ou detecção de emergências.
+Usa o mesmo pipeline do [quickstart oficial](https://github.com/AgoraIO-Conversational-AI/agent-quickstart-nextjs), adaptado ao app, e `agora-agents@2.15.0`. ARES é fornecido pela Agora; LLM e TTS usam credenciais gerenciadas pela Agora: **não é necessário saldo nem chave próprios da OpenAI, Deepgram ou MiniMax para a voz**. LLM e TTS são modelos de terceiros disponibilizados pela Agora. O projeto Agora precisa ter acesso e saldo/cota para esses serviços; não há promessa de gratuidade. Consulte [modo gerenciado](https://docs.agora.io/en/ai/build/managed-mode).
 
-## Por que a Agora é essencial
+Há apenas um caminho ativo de voz. OpenAI Realtime foi substituído; `OPENAI_REALTIME_MODEL` não é usado. Não há callback de Chat Completions no CareCircle para a conversa: a Agora executa ASR, LLM e TTS. O endpoint antigo `/api/voice/llm/{sessionId}` continua desativado (410).
 
-A integração utiliza **RTC para áudio bidirecional, RTM para legendas/estados e Conversational AI para STT → custom LLM → TTS**. Não há gravações ou áudio sintético local disfarçados de sessão Agora. O servidor executa ferramentas validadas e retorna texto SSE ao agente.
+Reconhecimento por ARES com palavras-chave do cenário, prompt em pt-BR e voz `Portuguese_Wiselady` do catálogo MiniMax. O VAD usa a configuração do quickstart compatível com o SDK instalado. RTM entrega estado, legendas e erros quando emitidos. Microfone só liga após ação explícita; a tela mostra nível local e separa captura de publicação na Agora. Encerrar ou receber falha do agente libera os recursos locais e solicita encerramento no servidor.
 
-A autorização final exige confirmação visual pela Helena. Autorização exclusivamente por fala não está implementada. [Quickstart oficial](https://github.com/AgoraIO-Conversational-AI/agent-quickstart-nextjs), [custom LLM oficial](https://github.com/AgoraIO-Conversational-AI/server-custom-llm), [contrato de integração](https://docs.agora.io/en/ai/platform/build/custom-model-integration/custom-llm.md). Mapa dos arquivos adaptados: [arquitetura](docs/architecture.md).
+O copilot **textual** existente pode continuar usando `OPENAI_API_KEY`/`OPENAI_MODEL`; sem API disponível, consulta os registros e identifica o modo sem IA. Essa chave não participa da voz.
 
-## Arquitetura
+## Ferramenta, consentimento e persistência
 
-Next.js App Router, React, TypeScript estrito, Tailwind, componentes próprios, Zod e OpenAI no servidor. SQLite persistente via Node 24, transações, UUIDs, chaves estrangeiras e reserva única por ocorrência. Worker separado para agenda. Atualização do painel a cada dois segundos.
+`prepareRequest` fica em `llm.tools`, habilitada por `withTools(true)`. A Agora chama apenas POST `/api/voice/tools/{sessionId}/prepare-request`.
 
-Sessões locais usam cookie opaco HttpOnly, SameSite e verificação de origem/Host. Supabase Auth e Realtime não estão ativos. [Arquitetura completa](docs/architecture.md).
+- Bearer aleatório vinculado à sessão, validade curta, hash em SQLite e revogação no encerramento.
+- Identidade e destinatário derivados no servidor; o modelo não escolhe IDs de família ou usuário.
+- Um rascunho privado por sessão. Correção altera a revisão; confirmação antiga recebe 409.
+- A ferramenta não envia, notifica, confirma ou cria tarefa final. Helena confirma visualmente a revisão atual.
+- Confirmação e tarefa são idempotentes; repetição ou clique duplo não duplicam cartão ou notificação.
+- Cancelar não compartilha. Pedro só aceita tarefas do círculo autorizado.
 
-A prioridade econômica é validar um círculo e um fluxo de compras antes de ampliar integrações. Assinatura por círculo é hipótese comercial, ainda sem validação de demanda.
-
-## Instalação
-
-Requer Node.js **24+** e npm. PowerShell:
-
-~~~powershell
-git clone https://github.com/acarloshenrique/unmute-hackathon.git
-cd unmute-hackathon
-npm ci
-Copy-Item .env.example .env.local
-~~~
-
-Se `.env.local` já existir, preserve suas configurações. Nunca use dados reais neste modo.
-
-## Variáveis
-
-| Variável | Uso |
-|---|---|
-| `CARECIRCLE_DEMO=true` | Pessoas e controles fictícios, somente em localhost |
-| `CARECIRCLE_DB_PATH` | SQLite; padrão `.agent-local/carecircle.sqlite` |
-| `OPENAI_API_KEY` | Segredo do servidor; também pode ser herdado do terminal |
-| `OPENAI_MODEL` | Modelo com ferramentas; padrão `gpt-4o-mini` |
-| `NEXT_PUBLIC_AGORA_APP_ID` | Identificador público do projeto Agora |
-| `NEXT_AGORA_APP_CERTIFICATE` | Certificado Agora, exclusivamente no servidor |
-| `CARECIRCLE_PUBLIC_URL` | Base HTTPS pública que a Agora consegue alcançar |
-| `AGORA_TTS_VOICE` | Opcional: ID confirmado no catálogo do provedor; vazio usa padrão do SDK |
-
-`.env.local` é ignorado pelo Git. Somente o App ID é público. Chaves e certificado nunca vão ao bundle cliente. Trocar de modelo não resolve saldo esgotado.
-
-Para voz, habilite RTC, RTM, Conversational AI e provedores gerenciados no projeto Agora. O pipeline usa Deepgram `nova-3` em português e MiniMax `speech_2_6_turbo`; confirme suporte e cobrança na conta. Encaminhe **somente o callback** `/api/voice/llm/{session_id}` por HTTPS, protegido pelo token da sessão. Não exponha o login fictício à internet.
+SQLite persistente, regras de autorização e tabelas existentes foram mantidos. Nenhuma migração de banco foi adicionada. Não persistimos áudio bruto ou transcrições integrais. CareCircle não diagnostica, não monitora clinicamente e não interpreta silêncio como bem-estar ou autorização.
 
 ## Execução local
 
-Terminal 1:
+Requer Node.js 24+ e npm. Preserve seu `.env.local` e configure os campos necessários, sem colocar segredos no Git:
 
-~~~powershell
-npm run build
+```powershell
+npm ci
+npm run check
 npm start
-~~~
+```
 
-Abra **http://127.0.0.1:3000/demo** e escolha uma pessoa fictícia. O seed é explícito e idempotente. O banco é criado automaticamente pela migração SQLite.
+Abra **http://127.0.0.1:3000/demo**. Em outro terminal: `npm run voice:gateway`. O gateway escuta somente **127.0.0.1:3002** e permite apenas o POST da ferramenta. Exponha via HTTPS **somente a porta 3002**, nunca a porta 3000 ou o login fictício. A origem HTTPS fica em `CARECIRCLE_VOICE_TOOL_URL`.
 
-Terminal 2, na mesma pasta:
+Scheduler opcional: `npm run scheduler`. Ele cria convites persistidos; não abre microfone em segundo plano.
 
-~~~powershell
-npm run scheduler
-~~~
+## Variáveis de ambiente
 
-O worker lê `.env.local`, consulta o relógio real a cada 15 segundos e precisa continuar rodando. Nunca inicia áudio/microfone em segundo plano. O disparo manual usa a mesma lógica com relógio fictício separado.
-
-Para desenvolvimento, `npm run dev` continua disponível. Neste ambiente Windows/OneDrive foram observadas recargas contínuas no dev; a causa adicional não foi isolada. A demonstração foi validada e ficou rodando em produção local (`npm start`), sem HMR. SQLite exige disco persistente e uma instância de serviço. O Dockerfile não foi validado.
-
-## Telas e demo
-
-| Rota | Função |
+| Variável | Uso |
 |---|---|
-| `/` | Apresentação |
-| `/idoso` | Lia, privacidade, revisão e formulário acessível |
-| `/familia` | Eventos, fontes, tarefas e copilot |
-| `/familia/agenda` | Criar, editar, pausar, retomar e cancelar |
-| `/familia/tarefas` | Aceitar, concluir e cancelar tarefas |
-| `/demo` | Relógio separado, disparo e registro de ações |
+| `NEXT_PUBLIC_AGORA_APP_ID` | Identificador público do projeto Agora |
+| `NEXT_AGORA_APP_CERTIFICATE` | Certificado Agora, somente servidor |
+| `CARECIRCLE_VOICE_TOOL_URL` | Origem HTTPS do gateway restrito, sem caminho/query |
+| `CARECIRCLE_DEMO` | Pessoas fictícias locais |
+| `CARECIRCLE_DB_PATH` | SQLite persistente |
+| `OPENAI_API_KEY` | Opcional, somente copilot textual; nunca voz |
+| `OPENAI_MODEL` | Opcional, modelo do copilot textual |
 
-1. Entre como Ana. Consulte o dia; a fixture de almoço às 12h08 aparece como relato simulado.
-2. Agende às 16h na data do relógio demo e confirme.
-3. Avance dois minutos e use **Disparar agora · teste**. Repetir não duplica a ocorrência.
-4. Entre como Helena e abra `/idoso`. Use a voz apenas após configurar e verificar Agora. Sem configuração, o botão fica desabilitado.
-5. Alternativa sem credenciais: **Prefiro escrever meu pedido** → leite, pão e café → revisar → **Confirmar e compartilhar**. Isso é formulário, sem voz.
-6. Volte como Ana e aceite a tarefa.
+Nenhuma chave foi criada ou trocada. `OPENAI_REALTIME_MODEL`, `CARECIRCLE_PUBLIC_URL` e `AGORA_TTS_VOICE` não controlam a voz atual.
 
-Use perfis de navegador separados para observar Ana e Helena simultaneamente; duas abas do mesmo perfil compartilham o cookie de identidade. A correção de itens por voz depende de validação real. [Roteiro de dois minutos](docs/demo-script.md).
+## Demo Helena → Pedro
 
-## Segurança e privacidade
+Use perfis separados de navegador para não compartilhar o cookie de identidade.
 
-Ator derivado da sessão no servidor; parâmetros do modelo não concedem acesso a outras famílias. Consentimento por finalidade e destinatário, concedido ou revogado pela Helena. Revogação oculta eventos, tarefas e notificações do destinatário.
+1. Como Helena em `/demo`, abra `/idoso`. Autorize convites e compartilhamento com Pedro.
+2. Como Pedro, abra `/familia/tarefas`: zero tarefas desse pedido.
+3. Helena toca **Conversar com Lia**, permite o microfone e diz: “Lia, pede pro Pedro me acompanhar à feira sábado.”
+4. Ouça a resposta em português e observe a proposta. Diga: “Às dez da manhã”. Confira 10:00 na revisão atual; Pedro continua sem cartão.
+5. Confirme na tela. Pedro recebe um cartão, toca **Posso ajudar** e recarrega: aceite persistido.
+6. Em outra sessão, cancele a proposta: nenhum cartão. Encerre e confira o indicador de microfone do navegador.
 
-Ferramentas preparam propostas. Compartilhar requer confirmação explícita na interface. Eventos distinguem relato, confirmação, pendência e ausência de resposta. Silêncio não informa estado de saúde.
+Não faça a gravação depender de interrupção até verificá-la com fala real. O formulário por texto é separado, não comprova áudio.
 
-Não gravamos áudio ou transcrições integrais no banco. Legendas são temporárias; contexto mínimo é processado por OpenAI/Agora para atender a conversa. Retenção dos provedores precisa ser avaliada antes de dados reais.
+## Testes e limites
 
-Tokens de voz curtos, canal/UID do servidor e callback com capacidade por sessão. Notificações significam apenas registros no painel; não há SMS, e-mail ou WhatsApp.
+`npm run check`: tipos, lint, testes unitários e build. `npm run test:e2e`: interface, HTTP e persistência com sessões explicitamente fictícias; não comprova áudio real. Use um banco separado ao executar E2E, pois os testes reinicializam fixtures.
 
-**Não é uma aplicação certificada LGPD/ISO ou pronta para dados reais.** Autenticação empresarial e controles operacionais permanecem pendentes.
+HTTP 200 ao iniciar agente, estado RUNNING e ingresso no canal não comprovam fala bidirecional. Captura física, compreensão em pt-BR, áudio recebido, ferramenta cloud e interrupção precisam de uma chamada real. Não publicamos métricas de latência não medidas. O login fictício é somente local, não autenticação empresarial.
 
-## Verificação
-
-~~~powershell
-npm run typecheck
-npm run lint
-npm test
-npx playwright install chromium
-# Com o servidor local rodando:
-npm run test:e2e
-npm run build
-~~~
-
-Unitários usam bancos temporários isolados. E2E usa a demo fictícia local; não rode com sessões reais ativas. Capturas ficam em `.agent-local/screenshots/`, ignoradas pelo Git. [Relatório](docs/testing.md), [limitações](docs/limitations.md), [pitch](docs/pitch.md), [slides](docs/slides-outline.md).
-
-## Migração Supabase
-
-`migrations/postgres.sql` contém as 12 tabelas do domínio com UUIDs e RLS. Clientes têm políticas de leitura por família, destinatário e consentimento; escritas são negadas por padrão e devem passar pela API autorizada. A migração **não foi executada**. Adaptador Postgres, vínculo com Supabase Auth e testes de isolamento ainda são necessários.
-
-## Componentes e licença
-
-Código de integração derivado do quickstart Agora sob MIT, com aviso preservado em `LICENSE.agora-quickstart`. [Componentes externos](docs/COMPONENTES.md). Nenhuma licença global foi adotada automaticamente.
+[Arquitetura](docs/architecture.md) · [Demo](docs/demo-script.md) · [Validação gerenciada](docs/managed-voice-validation.md) · [Histórico Realtime substituído](docs/realtime-validation.md) · [Componentes/licenças](docs/COMPONENTES.md).

@@ -19,12 +19,18 @@ export function failure(error: unknown) {
   console.error(
     JSON.stringify({
       action: "request_failed",
-      type: error instanceof Error ? error.name : "unknown",
-      message: error instanceof Error ? error.message : String(error),
-      stack:
-        error instanceof Error
-          ? error.stack?.split("\n").slice(0, 6).join("|")
-          : undefined,
+      type:
+        error instanceof Error &&
+        [
+          "Error",
+          "TypeError",
+          "RangeError",
+          "SyntaxError",
+          "APIError",
+        ].includes(error.name)
+          ? error.name
+          : "unknown",
+      message: "Falha interna; detalhes sensíveis omitidos.",
     }),
   );
   return Response.json(
