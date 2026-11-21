@@ -8,3 +8,11 @@
 | Lógica do produto | Trabalho do time | Preencher | Decisão do time | Preencher | Preencher |
 
 Não adote automaticamente uma licença para o projeto. Repo público não equivale a autorização para distribuir materiais de terceiros.
+
+
+## Componentes adotados no CareCircle
+
+- Quickstart Agora Next.js: https://github.com/AgoraIO-Conversational-AI/agent-quickstart-nextjs, commit 24374411cdd809701e2a39466f4f97d52e23f173. MIT, aviso em LICENSE.agora-quickstart. Adaptados ciclo de vida, token RTC+RTM, cliente e SSE.
+- Servidor custom LLM oficial: https://github.com/AgoraIO-Conversational-AI/server-custom-llm. Inspecionado como referência para ferramentas no servidor; não incorporado integralmente.
+- Next.js, React, Tailwind, Zod, Luxon, Lucide, OpenAI SDK, Agora SDKs, Vitest e Playwright: versões exatas no package-lock.json; avisos e licenças distribuídos nos respectivos pacotes.
+- Regras de domínio, interfaces, testes, migrações e materiais CareCircle criados nesta sessão. Pessoas e dados fictícios identificados. Sem nova licença global adotada.

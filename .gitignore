@@ -27,3 +27,12 @@ recordings/
 .agent-local/
 .DS_Store
 Thumbs.db
+
+# Estado CareCircle
+*.sqlite
+*.sqlite-*
+.next/
+playwright-report/
+test-results/
+*.tsbuildinfo
+next-env.d.ts
