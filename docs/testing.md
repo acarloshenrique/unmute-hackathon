@@ -18,7 +18,7 @@
 | Docker | Arquivo fornecido, build não executado |
 
 Comando final completo aprovado: `npm run check` (typecheck, lint, Vitest e build).
-Último E2E observado: 2 aprovados em 6,0 s. Isso é duração da suíte de navegador, **não latência da voz**.
+Último E2E observado contra produção local: 2 aprovados em 4,7 s. Isso é duração da suíte de navegador, **não latência da voz**.
 
 ## Cobertura automatizada
 
@@ -54,3 +54,11 @@ Teste de navegador inicialmente sem Chromium; FK de sessão indevida no teste te
 Configurar credenciais Agora, créditos OpenAI e callback HTTPS. Entrar voluntariamente, liberar microfone, observar agente no canal, falar português e ouvir resposta. Revisar proposta na tela, compartilhar, observar painel familiar, testar interrupção/reconexão e encerrar. Confirmar microfone liberado e estado de sessão encerrado no servidor.
 
 Não há medição de latência de voz, entrevistas de usuários ou avaliação clínica. Nenhuma dessas validações foi declarada aprovada.
+
+
+## Verificação final adicional
+
+- CI Linux no GitHub aprovado: https://github.com/acarloshenrique/unmute-hackathon/actions/runs/44941133941 (código fb6446c).
+- Busca do valor efetivo dos segredos disponíveis nos arquivos .next/static: aprovada, zero arquivos com ocorrência. Nenhum valor foi exibido.
+- Servidor de produção em 127.0.0.1:3000 e scheduler deixados rodando.
+- O dev apresentou novas recargas neste Windows/OneDrive após alterações. O aviso de tracing foi corrigido, mas a causa adicional não foi isolada. O teste final completo foi repetido contra npm start e passou. Para apresentação, usar build de produção.

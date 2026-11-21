@@ -59,7 +59,8 @@ Para voz, habilite RTC, RTM, Conversational AI e provedores gerenciados no proje
 Terminal 1:
 
 ~~~powershell
-npm run dev
+npm run build
+npm start
 ~~~
 
 Abra **http://127.0.0.1:3000/demo** e escolha uma pessoa fictícia. O seed é explícito e idempotente. O banco é criado automaticamente pela migração SQLite.
@@ -72,7 +73,7 @@ npm run scheduler
 
 O worker lê `.env.local`, consulta o relógio real a cada 15 segundos e precisa continuar rodando. Nunca inicia áudio/microfone em segundo plano. O disparo manual usa a mesma lógica com relógio fictício separado.
 
-Para produção **local**, encerre o dev e execute `npm run build` e `npm start`. SQLite exige disco persistente e uma instância de serviço. O Dockerfile é fornecido, mas ainda não foi validado.
+Para desenvolvimento, `npm run dev` continua disponível. Neste ambiente Windows/OneDrive foram observadas recargas contínuas no dev; a causa adicional não foi isolada. A demonstração foi validada e ficou rodando em produção local (`npm start`), sem HMR. SQLite exige disco persistente e uma instância de serviço. O Dockerfile não foi validado.
 
 ## Telas e demo
 

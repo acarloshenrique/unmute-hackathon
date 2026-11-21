@@ -14,3 +14,5 @@
 - Não há certificação LGPD/ISO, validação clínica, entrevistas de usuários ou indicadores de impacto medidos. O produto não faz diagnóstico, recomendações médicas ou monitoramento de emergências.
 - Reset remove dados fictícios locais e invalida sessões. Não deve ser usado com dados reais; só existe em modo demo local.
 - Teste real da chave OpenAI: HTTP 429 / credit_balance_exhausted. Ferramentas guiadas por IA e conversa de voz precisam de saldo. Consulta direta a registros e fluxo por formulário continuam disponíveis, sem simular uma chamada bem-sucedida à IA.
+
+- Neste ambiente Windows/OneDrive o servidor dev apresentou recargas contínuas; causa adicional não isolada. Use npm run build e npm start para a demonstração. Produção local passou novamente no E2E.
