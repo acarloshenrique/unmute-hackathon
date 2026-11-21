@@ -114,7 +114,8 @@ export async function startVoice(actor: Actor) {
           },
         },
       },
-      advancedFeatures: { enable_rtm: true },
+      advancedFeatures: { enable_rtm: true, enable_sal: true },
+      sal: { sal_mode: "locking" },
       parameters: {
         audio_scenario: "chorus",
         data_channel: "rtm",
