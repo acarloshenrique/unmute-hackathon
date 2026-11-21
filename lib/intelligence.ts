@@ -205,7 +205,7 @@ export async function voiceReply(
       .catch((error) => {
         throw apiFailure(error);
       });
-    const message = completion.choices[0]?.message;
+    const message = completion.choices?.[0]?.message;
     if (!message)
       throw new DomainError("AI_EMPTY", "A IA não retornou resposta.", 502);
     context.push(message);
