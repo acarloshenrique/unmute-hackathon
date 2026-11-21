@@ -20,6 +20,11 @@ export function failure(error: unknown) {
     JSON.stringify({
       action: "request_failed",
       type: error instanceof Error ? error.name : "unknown",
+      message: error instanceof Error ? error.message : String(error),
+      stack:
+        error instanceof Error
+          ? error.stack?.split("\n").slice(0, 6).join("|")
+          : undefined,
     }),
   );
   return Response.json(
