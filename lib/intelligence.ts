@@ -200,6 +200,7 @@ export async function voiceReply(
         parallel_tool_calls: false,
         max_completion_tokens: 450,
         temperature: 0.3,
+        user: sessionId ?? undefined,
       })
       .catch((error) => {
         throw apiFailure(error);
