@@ -1,7 +1,7 @@
 # Validação — voz gerenciada pela Agora
 
 ## Alteração
-A pedido do usuário, substituído o OpenAI Realtime pelo pipeline gerenciado oficial Agora: Deepgram Nova-3 pt-BR, GPT-4o-mini e MiniMax Speech 2.6 Turbo com voz Portuguese_Wiselady. Sem chave própria de provedor. `prepareRequest` passa de `mllm.tools` para `llm.tools`; endpoint, consentimento, revisão, confirmação visual e persistência são preservados. Não houve migração de banco, push ou deploy.
+A pedido do usuário, substituído o OpenAI Realtime pelo pipeline gerenciado oficial Agora: Deepgram Nova-3 pt-BR, GPT-4o-mini e MiniMax Speech 2.6 Turbo com voz Portuguese_Wiselady. Sem chave própria de provedor. `prepareRequest` passa de `mllm.tools` para `llm.tools`; endpoint, consentimento, revisão, confirmação visual e persistência são preservados. Não houve migração de banco nem deploy; a publicação no GitHub foi autorizada posteriormente pelo usuário.
 
 Arquivos: `lib/managed-agent.ts` (substitui `lib/realtime-agent.ts`), `lib/voice.ts`, `lib/voice-feedback.ts`, `tests/realtime.test.ts`, `.env.example`, README e documentação de arquitetura/demo/validação. O nome histórico `realtime-request` não indica uma segunda stack.
 
@@ -27,3 +27,10 @@ Manter `npm start`, `npm run voice:gateway` e o túnel da porta 3002 abertos. En
 Os seis commits já publicados foram preservados. Os ajustes de reconhecimento ARES e SAL locking foram transportados de `lib/voice.ts` para `lib/managed-agent.ts`, mantendo a ferramenta privada do novo fluxo. As palavras-chave usam o cenário não clínico da feira. O modo público de demonstração permanece opt-in e não foi habilitado localmente; o túnel continua restrito à ferramenta. O log de falhas foi mantido com mensagem fixa para impedir vazamento de tokens/transcrições em mensagens ou stack traces do provedor, com teste de regressão.
 
 As observações anteriores de microfone/legenda foram feitas com Deepgram antes dessa integração. Não comprovam qualidade de reconhecimento ou fala bidirecional com ARES/SAL. A validação completa com fala humana permanece pendente.
+
+## Revalidação após integrar origin/main
+- `npm run check` aprovado: tipos, lint, **53 testes unitários** e build. Inclui regressão que impede tokens e falas em logs de falha.
+- `npm run test:e2e`: **4 aprovados**, banco isolado `.agent-local/publish-verify-e2e.sqlite`, sem chave OpenAI no processo de teste.
+- Agente atualizado com ARES/SAL: início 200 e encerramento 200/disconnected; gateway manteve login em 404 e ferramenta sem autorização em 401.
+- Total automatizado final: **57 aprovados, 0 falhas na última execução**. Testes E2E usam sessões fictícias e não comprovam áudio.
+- Não foi repetida conversa humana bidirecional depois da integração ARES/SAL. Sem afirmação de qualidade, interrupção ou latência medida.

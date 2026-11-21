@@ -8,7 +8,7 @@ CareCircle transforma conversas autorizadas em coordenação familiar. Helena, A
 
 Microfone → Agora RTC → **Conversational AI gerenciado: Agora ARES → GPT-4o-mini → MiniMax Speech 2.6 Turbo** → Agora RTC → áudio da Lia.
 
-Usa o mesmo pipeline do [quickstart oficial](https://github.com/AgoraIO-Conversational-AI/agent-quickstart-nextjs), adaptado ao app, e `agora-agents@2.15.0`. ARES é fornecido pela Agora; LLM e TTS usam credenciais gerenciadas pela Agora: **não é necessário saldo nem chave próprios da OpenAI, Deepgram ou MiniMax para a voz**. LLM e TTS são modelos de terceiros disponibilizados pela Agora. O projeto Agora precisa ter acesso e saldo/cota para esses serviços; não há promessa de gratuidade. Consulte [modo gerenciado](https://docs.agora.io/en/ai/build/managed-mode).
+Usa o mesmo pipeline do [quickstart oficial](https://github.com/AgoraIO-Conversational-AI/agent-quickstart-nextjs), adaptado ao app, e `agora-agents@2.15.0`. ARES é fornecido pela Agora; LLM e TTS usam credenciais gerenciadas pela Agora: **não é necessário saldo nem chave próprios da OpenAI ou MiniMax para a voz**. LLM e TTS são modelos de terceiros disponibilizados pela Agora. O projeto Agora precisa ter acesso e saldo/cota para esses serviços; não há promessa de gratuidade. Consulte [modo gerenciado](https://docs.agora.io/en/ai/build/managed-mode).
 
 Há apenas um caminho ativo de voz. OpenAI Realtime foi substituído; `OPENAI_REALTIME_MODEL` não é usado. Não há callback de Chat Completions no CareCircle para a conversa: a Agora executa ASR, LLM e TTS. O endpoint antigo `/api/voice/llm/{sessionId}` continua desativado (410).
 
@@ -74,6 +74,6 @@ Não faça a gravação depender de interrupção até verificá-la com fala rea
 
 `npm run check`: tipos, lint, testes unitários e build. `npm run test:e2e`: interface, HTTP e persistência com sessões explicitamente fictícias; não comprova áudio real. Use um banco separado ao executar E2E, pois os testes reinicializam fixtures.
 
-HTTP 200 ao iniciar agente, estado RUNNING e ingresso no canal não comprovam fala bidirecional. Captura física, compreensão em pt-BR, áudio recebido, ferramenta cloud e interrupção precisam de uma chamada real. Não publicamos métricas de latência não medidas. O login fictício é somente local, não autenticação empresarial.
+HTTP 200 ao iniciar agente, estado RUNNING e ingresso no canal não comprovam fala bidirecional. Captura física, compreensão em pt-BR, áudio recebido, ferramenta cloud e interrupção precisam de uma chamada real. Não publicamos métricas de latência não medidas. O login fictício é local por padrão, não autenticação empresarial. O opt-in legado `CARECIRCLE_PUBLIC_DEMO=true` permite login público, mas não foi habilitado neste fluxo; o túnel continua expondo somente a ferramenta.
 
 [Arquitetura](docs/architecture.md) · [Demo](docs/demo-script.md) · [Validação gerenciada](docs/managed-voice-validation.md) · [Histórico Realtime substituído](docs/realtime-validation.md) · [Componentes/licenças](docs/COMPONENTES.md).
