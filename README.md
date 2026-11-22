@@ -2,6 +2,8 @@
 
 **Versão entregue (submissão UNMUTE): commit `9844109` em `main`.** Conversa de áudio real validada em 22/11 (sessão gravada: pedido → confirmação por voz → correção → confirmação visual → tarefa aceita). Ver `docs/TESTES-VOZ.md` para o que foi e o que não foi testado. Demo pública: https://carecircle.jazzautomations.com.br/demo.
 
+**Vídeo oficial da demo:** [Assistir no YouTube](https://youtu.be/U-mw70Itft4).
+
 CareCircle transforma conversas autorizadas em coordenação familiar. Helena, Ana e Pedro são pessoas fictícias. Cenário de ação da sessão de voz no navegador: Helena pede companhia de Pedro para ir à feira no sábado, corrige para 10h, revisa na tela e confirma. Somente então Pedro recebe um cartão e pode tocar **Posso ajudar**.
 
 ## Experimentar a Lia em `/demo`
