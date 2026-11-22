@@ -92,6 +92,13 @@ test("jornada persistida: agenda → convite → consentimento → tarefa → ac
   ).toBeVisible();
   await page.getByRole("button", { name: "Posso ajudar" }).click();
   await expect(page.getByText("Aceita", { exact: true })).toBeVisible();
+  const report = page.getByRole("region", { name: "Resumo de acompanhamento" });
+  await expect(report).toContainText("Pedido compartilhado com você");
+  await expect(report).toContainText("Status: Aceita");
+  await expect(report).toContainText("SIMULAÇÃO");
+  await expect(report).toContainText("nem altera o plano de acompanhamento");
+  await page.reload();
+  await expect(report).toContainText("Status: Aceita");
   const saved = await (await page.request.get("/api/snapshot")).json();
   expect(saved.tasks).toHaveLength(1);
   expect(saved.tasks[0].status).toBe("accepted");

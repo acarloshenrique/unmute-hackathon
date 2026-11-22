@@ -1,4 +1,5 @@
 import type { CaregiverProfile } from "./caregivers";
+import type { FamilyCheckinReport } from "./checkin-report";
 export type Item = { label: string; quantity?: string | null };
 export type CareEvent = {
   id: string;
@@ -43,6 +44,7 @@ export type Data = {
   caregiver: CaregiverProfile;
   can_choose_caregiver: boolean;
   events: CareEvent[];
+  checkin_report: FamilyCheckinReport | null;
   tasks: Task[];
   routines: Routine[];
   runs: {
