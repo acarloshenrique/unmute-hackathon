@@ -12,6 +12,7 @@ import {
   Leaf,
   LoaderCircle,
   MessageCircle,
+  PhoneCall,
   Plus,
   Send,
   ShieldCheck,
@@ -587,6 +588,7 @@ function Dashboard({
             />
           )}
           <Copilot data={data} act={act} />
+          <Channels />
           <section className="card">
             <div className="card-heading">
               <h2>Próximas conversas</h2>
@@ -609,6 +611,88 @@ function Dashboard({
         </aside>
       </div>
     </>
+  );
+}
+function Channels() {
+  const [num, setNum] = useState(""),
+    [msg, setMsg] = useState(""),
+    [busy, setBusy] = useState(""),
+    [note, setNote] = useState(""),
+    [err, setErr] = useState("");
+  async function go(kind: "whatsapp" | "call") {
+    setBusy(kind);
+    setErr("");
+    setNote("");
+    try {
+      const r = await fetch("/api/outreach", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ kind, to: num, message: msg }),
+      });
+      const j = await r.json();
+      if (!r.ok) throw new Error(j.error || "Falha no envio.");
+      setNote(
+        kind === "whatsapp"
+          ? "Enviado — a pessoa recebe uma nota de voz da Lia no WhatsApp."
+          : "Ligando — a Lia chama e fala a mensagem ao vivo.",
+      );
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : "Falha no envio.");
+    } finally {
+      setBusy("");
+    }
+  }
+  return (
+    <section className="card">
+      <div className="card-heading">
+        <h2>Canais reais</h2>
+        <PhoneCall size={20} />
+      </div>
+      <p className="soft-label">
+        A Lia alcança a família onde ela já está — mensagem vira nota de voz,
+        ligação fala ao vivo.
+      </p>
+      <label>
+        Número
+        <input
+          value={num}
+          onChange={(e) => setNum(e.target.value)}
+          placeholder="5511..."
+          inputMode="tel"
+        />
+      </label>
+      <label>
+        Mensagem
+        <input
+          value={msg}
+          onChange={(e) => setMsg(e.target.value)}
+          placeholder="Lembrete da consulta de sexta de manhã"
+          maxLength={400}
+        />
+      </label>
+      <div className="button-row">
+        <button
+          className="button button-small"
+          disabled={!!busy || !num || !msg}
+          onClick={() => void go("whatsapp")}
+        >
+          {busy === "whatsapp" ? "Enviando…" : "WhatsApp"}
+        </button>
+        <button
+          className="button button-small"
+          disabled={!!busy || !num || !msg}
+          onClick={() => void go("call")}
+        >
+          {busy === "call" ? "Ligando…" : "Ligar"}
+        </button>
+      </div>
+      {note && <p className="callout">{note}</p>}
+      {err && (
+        <p role="alert" className="form-error">
+          {err}
+        </p>
+      )}
+    </section>
   );
 }
 function TaskList({ data, act }: { data: Data; act: Action }) {
