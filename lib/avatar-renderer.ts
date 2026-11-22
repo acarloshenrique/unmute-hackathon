@@ -1,88 +1,77 @@
-// Renderer for the bundled CareCircle glTF. The portrait atlas bakes the
-// studio lighting while the JawOpen morph deforms the actual mouth geometry.
-type Accessor = { bufferView: number; byteOffset?: number; componentType: number; count: number };
-type View = { byteOffset?: number; byteLength: number; byteStride?: number };
-type Primitive = { indices: number; attributes: { POSITION: number }; targets?: { POSITION: number }[] };
+import type { Mouth } from "./avatar-speech";
+
+type IndexView = { bufferView: number; componentType: number };
+type Accessor = {
+  bufferView?: number;
+  componentType: number;
+  count: number;
+  sparse?: { count: number; indices: IndexView; values: { bufferView: number } };
+};
+type Primitive = {
+  indices: number;
+  attributes: { POSITION: number };
+  targets: { POSITION: number }[];
+};
 type Bust = {
-  bufferViews: View[];
+  bufferViews: { byteOffset?: number; byteLength: number }[];
   accessors: Accessor[];
   meshes: { primitives: Primitive[] }[];
-  nodes: { mesh: number; scale?: number[]; translation?: number[] }[];
 };
+
+// The asset is registered to a front orthographic portrait. Its five glTF
+// morph targets also work in other 3D viewers independently of the RTC client.
 const vertexShader = `
-attribute vec3 position, jaw;
-uniform vec3 offset, scale;
-uniform float opening, turn;
-varying vec2 uvA, uvB;
-varying float blend;
-const vec3 center = vec3(0., 1.74, 0.);
-vec3 project(vec3 p) {
-  vec3 back = normalize(vec3(.34,.54,7.5));
-  vec3 right = normalize(cross(vec3(0.,1.,0.),back));
-  vec3 up = cross(back,right);
-  vec3 d = p-center;
-  return vec3(2./3.68*vec2(dot(d,right),dot(d,up)), -dot(d,back)/4.);
-}
-vec2 atlas(vec3 p, float pose) {
-  vec2 xy = project(p).xy * vec2(.5,-.5) + .5;
-  return (vec2(mod(pose,3.),floor(pose/3.)) + clamp(xy, vec2(.0012),vec2(.9988))) / vec2(3.,2.);
-}
+attribute vec3 position, jaw, rounded, spread, teethLip, lids;
+uniform mediump vec4 mouth;
+uniform mediump float blink, nod;
+varying mediump vec2 uv;
 void main() {
-  float frame = clamp(opening,0.,1.)*5.;
-  float a = floor(frame), b = min(5.,a+1.);
-  vec3 neutral=position*scale+offset;
-  vec3 delta=jaw*scale;
-  uvA=atlas(neutral+delta*(a/5.),a);
-  uvB=atlas(neutral+delta*(b/5.),b);
-  blend=fract(frame);
-  vec3 p=neutral+delta*opening;
-  p.xz=mat2(cos(turn),-sin(turn),sin(turn),cos(turn))*p.xz;
-  gl_Position=vec4(project(p),1.);
+  vec3 p = position + jaw*mouth.x + rounded*mouth.y + spread*mouth.z + teethLip*mouth.w + lids*blink;
+  uv = p.xy * vec2(.5,-.5) + .5;
+  p.y += nod * clamp(p.z,0.,.8);
+  gl_Position = vec4(p.xy, -.6*p.z, 1.);
 }`;
 const fragmentShader = `
 precision mediump float;
-uniform sampler2D portrait;
-varying vec2 uvA,uvB;
-varying float blend;
+uniform sampler2D portraits;
+uniform mediump vec4 mouth;
+uniform mediump float blink;
+varying mediump vec2 uv;
+vec3 frame(vec2 cell) {
+  return texture2D(portraits,(cell+clamp(uv,vec2(.001),vec2(.999)))/vec2(3.,2.)).rgb;
+}
 void main() {
-  vec4 c=mix(texture2D(portrait,uvA),texture2D(portrait,uvB),blend);
-  if(c.a<.08) discard;
-  gl_FragColor=vec4(c.rgb*c.a,c.a);
+  vec3 base = frame(vec2(0.,0.));
+  vec3 color = base;
+  if(uv.y>.58 && uv.y<.84 && uv.x>.31 && uv.x<.70) {
+    color += mouth.x*(frame(vec2(1.,0.))-base) + mouth.y*(frame(vec2(2.,0.))-base)
+           + mouth.z*(frame(vec2(0.,1.))-base) + mouth.w*(frame(vec2(1.,1.))-base);
+  }
+  if(uv.y>.42 && uv.y<.57) color += blink*(frame(vec2(2.,1.))-base);
+  gl_FragColor=vec4(color,1.);
 }`;
+
 export async function prepareAvatar(canvas: HTMLCanvasElement, signal: AbortSignal) {
-  const context = canvas.getContext("webgl", {
-    alpha: true,
-    antialias: true,
-    premultipliedAlpha: true,
-  });
+  const context = canvas.getContext("webgl", {alpha:true, antialias:true});
   if (!context) return;
   const gl: WebGLRenderingContext = context;
-  const assets = await Promise.all(
-    ["/avatars/lia.glb", "/avatars/lia-poses.webp"].map(async url => {
-      const response = await fetch(url, { signal });
-      if (!response.ok) throw new Error("Avatar indisponível");
-      return response.blob();
-    }),
+  const [modelResponse, imageResponse] = await Promise.all(
+    ["/avatars/lia-realista.glb", "/avatars/lia-expressoes.webp"].map(url => fetch(url, {signal})),
   );
+  if (!modelResponse.ok || !imageResponse.ok) throw new Error("Retrato indisponível");
   const [binary, bitmap] = await Promise.all([
-    assets[0].arrayBuffer(),
-    createImageBitmap(assets[1]),
+    modelResponse.arrayBuffer(), imageResponse.blob().then(blob => createImageBitmap(blob)),
   ]);
-  if (signal.aborted || gl.isContextLost()) {
-    bitmap.close();
-    return;
-  }
+  if (signal.aborted || gl.isContextLost()) { bitmap.close(); return; }
 
-  const header = new DataView(binary);
-  const jsonSize = header.getUint32(12, true);
-  const model: Bust = JSON.parse(
-    new TextDecoder().decode(new Uint8Array(binary, 20, jsonSize)),
-  );
-  const geometryStart = 28 + jsonSize;
+  const size = new DataView(binary).getUint32(12,true);
+  const model: Bust = JSON.parse(new TextDecoder().decode(new Uint8Array(binary,20,size)));
+  const binStart = size + 28;
   const buffers: WebGLBuffer[] = [];
   const shaders: WebGLShader[] = [];
   const program = gl.createProgram()!;
   const texture = gl.createTexture();
+  const attributes = new Map<number, WebGLBuffer | null>();
 
   function dispose() {
     for (const buffer of buffers) gl.deleteBuffer(buffer);
@@ -90,106 +79,89 @@ export async function prepareAvatar(canvas: HTMLCanvasElement, signal: AbortSign
     gl.deleteTexture(texture);
     gl.deleteProgram(program);
   }
-
-  function upload(index: number, target: number) {
-    const accessor = model.accessors[index];
-    const view = model.bufferViews[accessor.bufferView];
+  function makeBuffer(target: number, data: ArrayBufferView<ArrayBuffer>) {
     const buffer = gl.createBuffer()!;
     buffers.push(buffer);
-    gl.bindBuffer(target, buffer);
-    const bytes = new Uint8Array(binary, geometryStart + (view.byteOffset || 0), view.byteLength);
-    gl.bufferData(target, bytes, gl.STATIC_DRAW);
-    return {
-      buffer,
-      type: accessor.componentType,
-      count: accessor.count,
-      offset: accessor.byteOffset || 0,
-      stride: view.byteStride || 0,
-    };
+    gl.bindBuffer(target,buffer);
+    gl.bufferData(target,data,gl.STATIC_DRAW);
+    return buffer;
   }
-
-  function attribute(location: number, accessor: ReturnType<typeof upload>) {
-    gl.enableVertexAttribArray(location);
-    gl.bindBuffer(gl.ARRAY_BUFFER, accessor.buffer);
-    gl.vertexAttribPointer(location, 3, accessor.type, false, accessor.stride, accessor.offset);
+  function offset(view: number) { return binStart + (model.bufferViews[view].byteOffset || 0); }
+  function vector(index: number) {
+    if (attributes.has(index)) return attributes.get(index)!;
+    const a = model.accessors[index];
+    let values: Float32Array<ArrayBuffer> | undefined;
+    if (a.bufferView !== undefined) {
+      values = new Float32Array(binary,offset(a.bufferView),a.count*3);
+    } else if (a.sparse) {
+      const sparse = a.sparse;
+      const ids = new Uint16Array(binary,offset(sparse.indices.bufferView),sparse.count);
+      const deltas = new Float32Array(binary,offset(sparse.values.bufferView),sparse.count*3);
+      values = new Float32Array(a.count*3);
+      for (let i=0; i<ids.length; i++) {
+        for (let axis=0; axis<3; axis++) values[ids[i]*3+axis] = deltas[i*3+axis];
+      }
+    }
+    const buffer = values ? makeBuffer(gl.ARRAY_BUFFER,values) : null;
+    attributes.set(index,buffer);
+    return buffer;
   }
-
   try {
-    const stages = [[gl.VERTEX_SHADER, vertexShader], [gl.FRAGMENT_SHADER, fragmentShader]] as const;
-    for (const [kind, code] of stages) {
-      const shader = gl.createShader(kind)!;
+    for (const [kind, source] of [[gl.VERTEX_SHADER,vertexShader],[gl.FRAGMENT_SHADER,fragmentShader]] as const) {
+      const shader=gl.createShader(kind)!;
       shaders.push(shader);
-      gl.shaderSource(shader, code);
+      gl.shaderSource(shader,source);
       gl.compileShader(shader);
-      if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) throw new Error("Shader indisponível");
-      gl.attachShader(program, shader);
+      if (!gl.getShaderParameter(shader,gl.COMPILE_STATUS)) throw new Error("Shader indisponível");
+      gl.attachShader(program,shader);
     }
     gl.linkProgram(program);
-    if (!gl.getProgramParameter(program, gl.LINK_STATUS)) throw new Error("Renderização indisponível");
+    if (!gl.getProgramParameter(program,gl.LINK_STATUS)) throw new Error("Renderização indisponível");
     gl.useProgram(program);
-    gl.bindTexture(gl.TEXTURE_2D, texture);
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, bitmap);
-    for (const axis of [gl.TEXTURE_WRAP_S, gl.TEXTURE_WRAP_T]) {
-      gl.texParameteri(gl.TEXTURE_2D, axis, gl.CLAMP_TO_EDGE);
-    }
-    for (const filter of [gl.TEXTURE_MIN_FILTER, gl.TEXTURE_MAG_FILTER]) {
-      gl.texParameteri(gl.TEXTURE_2D, filter, gl.LINEAR);
-    }
+    gl.bindTexture(gl.TEXTURE_2D,texture);
+    gl.texImage2D(gl.TEXTURE_2D,0,gl.RGB,gl.RGB,gl.UNSIGNED_BYTE,bitmap);
+    for (const axis of [gl.TEXTURE_WRAP_S,gl.TEXTURE_WRAP_T]) gl.texParameteri(gl.TEXTURE_2D,axis,gl.CLAMP_TO_EDGE);
+    for (const filter of [gl.TEXTURE_MIN_FILTER,gl.TEXTURE_MAG_FILTER]) gl.texParameteri(gl.TEXTURE_2D,filter,gl.LINEAR);
     gl.enable(gl.DEPTH_TEST);
-
-    const position = gl.getAttribLocation(program, "position");
-    const jaw = gl.getAttribLocation(program, "jaw");
-    const scale = gl.getUniformLocation(program, "scale");
-    const offset = gl.getUniformLocation(program, "offset");
-    const opening = gl.getUniformLocation(program, "opening");
-    const turn = gl.getUniformLocation(program, "turn");
-    const parts = model.nodes.flatMap(node =>
-      model.meshes[node.mesh].primitives.map(primitive => {
-        const indices = upload(primitive.indices, gl.ELEMENT_ARRAY_BUFFER);
-        if (indices.type === gl.UNSIGNED_INT && !gl.getExtension("OES_element_index_uint")) {
-          throw new Error("Índices indisponíveis");
-        }
-        return {
-          indices,
-          position: upload(primitive.attributes.POSITION, gl.ARRAY_BUFFER),
-          jaw: primitive.targets ? upload(primitive.targets[0].POSITION, gl.ARRAY_BUFFER) : null,
-          scale: node.scale || [1, 1, 1],
-          offset: node.translation || [0, 0, 0],
-        };
-      }),
-    );
+    const locs = ["position","jaw","rounded","spread","teethLip","lids"].map(key => gl.getAttribLocation(program,key));
+    const lip = gl.getUniformLocation(program,"mouth");
+    const lid = gl.getUniformLocation(program,"blink");
+    const head = gl.getUniformLocation(program,"nod");
+    const parts = model.meshes[0].primitives.map(part => {
+      const a = model.accessors[part.indices];
+      const ids = new Uint16Array(binary,offset(a.bufferView!),a.count);
+      return {
+        vectors: [vector(part.attributes.POSITION), ...part.targets.map(t=>vector(t.POSITION))],
+        indices: makeBuffer(gl.ELEMENT_ARRAY_BUFFER,ids),
+        count: a.count,
+      };
+    });
     return {
       dispose,
-      draw(amount: number, angle: number) {
-        const ratio = Math.min(window.devicePixelRatio || 1, 2);
-        const size = Math.min(600, Math.max(1, Math.round(canvas.clientWidth * ratio)));
-        if (canvas.width !== size || canvas.height !== size) {
-          canvas.width = size;
-          canvas.height = size;
-        }
-        gl.viewport(0, 0, size, size);
+      draw(mouth: Mouth, blink: number, nod: number) {
+        const pixels = Math.min(720,Math.max(1,Math.round(canvas.clientWidth*Math.min(2,window.devicePixelRatio || 1))));
+        if (canvas.width!==pixels || canvas.height!==pixels) { canvas.width=pixels; canvas.height=pixels; }
+        gl.viewport(0,0,pixels,pixels);
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-        gl.uniform1f(opening, amount);
-        gl.uniform1f(turn, angle);
+        gl.uniform4f(lip,mouth.open,mouth.round,mouth.wide,mouth.teeth);
+        gl.uniform1f(lid,blink);
+        gl.uniform1f(head,nod);
         for (const part of parts) {
-          gl.uniform3fv(scale, part.scale);
-          gl.uniform3fv(offset, part.offset);
-          attribute(position, part.position);
-          if (part.jaw) {
-            attribute(jaw, part.jaw);
-          } else {
-            gl.disableVertexAttribArray(jaw);
-            gl.vertexAttrib3f(jaw, 0, 0, 0);
-          }
-          gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, part.indices.buffer);
-          gl.drawElements(gl.TRIANGLES, part.indices.count, part.indices.type, part.indices.offset);
+          part.vectors.forEach((buffer,i)=>{
+            if (buffer) {
+              gl.enableVertexAttribArray(locs[i]);
+              gl.bindBuffer(gl.ARRAY_BUFFER,buffer);
+              gl.vertexAttribPointer(locs[i],3,gl.FLOAT,false,0,0);
+            } else {
+              gl.disableVertexAttribArray(locs[i]);
+              gl.vertexAttrib3f(locs[i],0,0,0);
+            }
+          });
+          gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER,part.indices);
+          gl.drawElements(gl.TRIANGLES,part.count,gl.UNSIGNED_SHORT,0);
         }
       },
     };
-  } catch (error) {
-    dispose();
-    throw error;
-  } finally {
-    bitmap.close();
-  }
+  } catch (error) { dispose(); throw error; }
+  finally { bitmap.close(); }
 }
