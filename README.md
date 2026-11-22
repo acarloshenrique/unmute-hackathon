@@ -1,6 +1,6 @@
 # CareCircle — voz gerenciada pela Agora
 
-**Pipeline gerenciado implementado; conversa de áudio ainda não validada.**
+**Versão entregue (submissão UNMUTE): commit `2a71194`.** Conversa de áudio real validada em 22/11 (sessão gravada: pedido → confirmação por voz → correção → confirmação visual → tarefa aceita). Ver `docs/TESTES-VOZ.md` para o que foi e o que não foi testado.
 
 CareCircle transforma conversas autorizadas em coordenação familiar. Helena, Ana e Pedro são pessoas fictícias. Cenário único desta demo: Helena pede companhia de Pedro para ir à feira no sábado, corrige para 10h, revisa na tela e confirma. Somente então Pedro recebe um cartão e pode tocar **Posso ajudar**.
 
