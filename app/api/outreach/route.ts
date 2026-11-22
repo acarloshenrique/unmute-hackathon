@@ -39,6 +39,15 @@ export async function POST(req: Request) {
       ])
       .parse(await body(req));
     const demo = "scenario" in d;
+    if (demo && d.scenario === "remedio")
+      return Response.json(
+        {
+          error: "GUIDED_SCENARIO",
+          message:
+            "Abra o cenário de jejum para ligar e receber a resposta de Ana.",
+        },
+        { status: 409 },
+      );
     const number = demoPhone(d.to);
     if (!number)
       return Response.json(

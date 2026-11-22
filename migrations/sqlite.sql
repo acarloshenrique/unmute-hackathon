@@ -30,3 +30,9 @@ CREATE TABLE IF NOT EXISTS caregiver_preferences(
   updated_by TEXT NOT NULL REFERENCES members(id),
   updated_at TEXT NOT NULL
 );
+
+CREATE TABLE IF NOT EXISTS fasting_calls(
+  id TEXT PRIMARY KEY, actor_id TEXT NOT NULL REFERENCES members(id) ON DELETE CASCADE,
+  sid TEXT UNIQUE, started INTEGER NOT NULL,
+  state TEXT NOT NULL CHECK(state IN ('waiting','yes','no','unsure','unanswered'))
+);

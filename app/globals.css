@@ -2059,3 +2059,16 @@ details.card {
   margin-inline-start: 0;
   overflow-wrap: anywhere;
 }
+
+.fasting-demo { width:min(calc(100% - 32px),820px); margin:0 auto; padding:24px 0 48px; }
+.fasting-demo header, .fasting-hero { display:flex; justify-content:space-between; align-items:center; gap:16px; }
+.fasting-demo header { font-size:.88rem; color:var(--green); margin-bottom:22px; }
+.fasting-hero { padding:clamp(17px,4vw,32px); background:var(--sage); border-radius:18px; }
+.fasting-hero img { width:clamp(58px,12vw,100px);height:auto;border-radius:50%; }
+.fasting-hero h1 { font-family:Georgia,serif;margin-bottom:8px; }
+.fasting-mode { margin:14px 0; font-size:.9rem; }
+.fasting-dialog { margin:12px 0; }
+.fasting-dialog .eyebrow { margin:12px 0 4px; }
+.fasting-dialog h2 { font-size:1.25rem;line-height:1.5; }
+.fasting-dialog .button-row,.fasting-dialog > button { margin-top:12px; }
+.fasting-return { background:#e7efdf; border-color:#afc5a8; }

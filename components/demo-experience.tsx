@@ -272,119 +272,137 @@ export function DemoExperience({
             </div>
           </fieldset>
 
-          <section className={styles.contact} aria-labelledby="contact-heading">
-            <h2 id="contact-heading">
-              {realAvailable
-                ? "Experimente no seu celular"
-                : "Simule um contato"}
-            </h2>
-            <fieldset
-              disabled={sending || openingFamily}
-              className={styles.delivery}
+          {selected === "remedio" ? (
+            <section className={styles.contact}>
+              <h2>Da dúvida ao retorno</h2>
+              <p>
+                Faça a pergunta de Helena e acompanhe a resposta de Ana na tela
+                da mãe.
+              </p>
+              <Link className={styles.submit} href="/demo/jejum">
+                Abrir cenário de jejum <ChevronRight size={16} />
+              </Link>
+            </section>
+          ) : (
+            <section
+              className={styles.contact}
+              aria-labelledby="contact-heading"
             >
-              <legend>
+              <h2 id="contact-heading">
                 {realAvailable
-                  ? "Como quer receber?"
-                  : "Qual canal quer simular?"}
-              </legend>
-              <div className={styles.channels}>
-                {channels.map(({ id, label, icon: Icon }) => (
-                  <label key={id} className={styles.channel}>
+                  ? "Experimente no seu celular"
+                  : "Simule um contato"}
+              </h2>
+              <fieldset
+                disabled={sending || openingFamily}
+                className={styles.delivery}
+              >
+                <legend>
+                  {realAvailable
+                    ? "Como quer receber?"
+                    : "Qual canal quer simular?"}
+                </legend>
+                <div className={styles.channels}>
+                  {channels.map(({ id, label, icon: Icon }) => (
+                    <label key={id} className={styles.channel}>
+                      <input
+                        type="radio"
+                        name="channel"
+                        value={id}
+                        checked={channel === id}
+                        aria-label={
+                          id === "call" ? label : label + " no WhatsApp"
+                        }
+                        onChange={() => {
+                          setChannel(id);
+                          setFeedback(null);
+                        }}
+                      />
+                      <Icon size={19} />
+                      {label}
+                    </label>
+                  ))}
+                </div>
+                {realAvailable ? (
+                  <>
+                    <p className={styles.hint}>
+                      Envio real somente para números de teste autorizados.
+                    </p>
+                    <label className={styles.phoneLabel} htmlFor="demo-phone">
+                      Seu telefone com DDD
+                    </label>
                     <input
-                      type="radio"
-                      name="channel"
-                      value={id}
-                      checked={channel === id}
-                      aria-label={
-                        id === "call" ? label : label + " no WhatsApp"
+                      ref={phoneField}
+                      id="demo-phone"
+                      type="tel"
+                      inputMode="tel"
+                      autoComplete="tel"
+                      maxLength={32}
+                      value={phone}
+                      required
+                      placeholder="(11) 99999-9999"
+                      aria-invalid={phoneError}
+                      aria-describedby={
+                        phoneError ? "phone-error" : "phone-hint"
                       }
-                      onChange={() => {
-                        setChannel(id);
+                      onChange={(e) => {
+                        setPhone(e.target.value);
+                        setPhoneError(false);
                         setFeedback(null);
                       }}
                     />
-                    <Icon size={19} />
-                    {label}
-                  </label>
-                ))}
-              </div>
-              {realAvailable ? (
-                <>
+                    {phoneError ? (
+                      <p id="phone-error" role="alert" className={styles.error}>
+                        Confira o DDD e o número. Para outro país, comece com +
+                        e o código do país.
+                      </p>
+                    ) : (
+                      <p id="phone-hint" className={styles.hint}>
+                        Brasil (+55). Para outro país, inclua o código com +.
+                      </p>
+                    )}
+                  </>
+                ) : (
                   <p className={styles.hint}>
-                    Envio real somente para números de teste autorizados.
+                    Modo simulação. Nenhuma ligação ou mensagem será enviada.
                   </p>
-                  <label className={styles.phoneLabel} htmlFor="demo-phone">
-                    Seu telefone com DDD
-                  </label>
-                  <input
-                    ref={phoneField}
-                    id="demo-phone"
-                    type="tel"
-                    inputMode="tel"
-                    autoComplete="tel"
-                    maxLength={32}
-                    value={phone}
-                    required
-                    placeholder="(11) 99999-9999"
-                    aria-invalid={phoneError}
-                    aria-describedby={phoneError ? "phone-error" : "phone-hint"}
-                    onChange={(e) => {
-                      setPhone(e.target.value);
-                      setPhoneError(false);
-                      setFeedback(null);
-                    }}
-                  />
-                  {phoneError ? (
-                    <p id="phone-error" role="alert" className={styles.error}>
-                      Confira o DDD e o número. Para outro país, comece com + e
-                      o código do país.
-                    </p>
+                )}
+                <button
+                  type="submit"
+                  className={styles.submit}
+                  disabled={
+                    sending ||
+                    textUnavailable ||
+                    Boolean(feedback && !feedback.error)
+                  }
+                >
+                  {sending ? (
+                    <LoaderCircle className="spin" size={18} />
                   ) : (
-                    <p id="phone-hint" className={styles.hint}>
-                      Brasil (+55). Para outro país, inclua o código com +.
-                    </p>
+                    <delivery.icon size={18} />
                   )}
-                </>
-              ) : (
-                <p className={styles.hint}>
-                  Modo simulação. Nenhuma ligação ou mensagem será enviada.
+                  {sending
+                    ? "Solicitando…"
+                    : realAvailable
+                      ? delivery.action
+                      : "Simular " + delivery.label.toLowerCase()}
+                </button>
+              </fieldset>
+              {textUnavailable && (
+                <p role="status" className={styles.hint}>
+                  O envio de texto aguarda a conexão do WhatsApp neste ambiente.
                 </p>
               )}
-              <button
-                type="submit"
-                className={styles.submit}
-                disabled={
-                  sending ||
-                  textUnavailable ||
-                  Boolean(feedback && !feedback.error)
-                }
-              >
-                {sending ? (
-                  <LoaderCircle className="spin" size={18} />
-                ) : (
-                  <delivery.icon size={18} />
-                )}
-                {sending
-                  ? "Solicitando…"
-                  : realAvailable
-                    ? delivery.action
-                    : "Simular " + delivery.label.toLowerCase()}
-              </button>
-            </fieldset>
-            {textUnavailable && (
-              <p role="status" className={styles.hint}>
-                O envio de texto aguarda a conexão do WhatsApp neste ambiente.
-              </p>
-            )}
-            {feedback && (
-              <p
-                role={feedback.error ? "alert" : "status"}
-                className={feedback.error ? styles.error : styles.success}
-              >
-                {feedback.text}
-              </p>
-            )}
-          </section>
+              {feedback && (
+                <p
+                  role={feedback.error ? "alert" : "status"}
+                  className={feedback.error ? styles.error : styles.success}
+                >
+                  {feedback.text}
+                </p>
+              )}
+            </section>
+          )}
         </form>
       </main>
       <footer className={styles.footer}>

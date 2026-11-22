@@ -118,3 +118,9 @@ Não faça a gravação depender de interrupção até verificá-la com fala rea
 HTTP 200 ao iniciar agente, estado RUNNING e ingresso no canal não comprovam fala bidirecional. Captura física, compreensão em pt-BR, áudio recebido, ferramenta cloud e interrupção precisam de uma chamada real. Não publicamos métricas de latência não medidas. O login fictício é local por padrão, não autenticação empresarial. O opt-in legado `CARECIRCLE_PUBLIC_DEMO=true` permite login público, mas não foi habilitado neste fluxo; o túnel continua expondo somente a ferramenta.
 
 [Arquitetura](docs/architecture.md) · [Demo](docs/demo-script.md) · [Validação gerenciada](docs/managed-voice-validation.md) · [Histórico Realtime substituído](docs/realtime-validation.md) · [Componentes/licenças](docs/COMPONENTES.md).
+
+### Cenário 2 · Café, remédio e jejum
+
+Em `/demo`, o segundo cartão abre `/demo/jejum`. O mesmo roteiro pode ser aberto na tela da pessoa idosa. Helena faz a pergunta por voz em um navegador compatível ou usa o texto do exemplo. Ela permite que Lia consulte Ana. A pergunta à filha é se a **equipe do exame já confirmou** a orientação sobre o café. Nenhuma resposta muda o horário ou a dose do remédio.
+
+Para ativar ligações neste roteiro, publique as rotas e configure no servidor a lista de teste e o opt-in existentes, `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_FROM_NUMBER` e a origem HTTPS do app em `CARECIRCLE_CALLBACK_ORIGIN`. O cenário usa Twilio Gather em português com fala ou teclas 1, 2 e 3. O webhook assinado vincula cada resposta ao pedido e ao CallSid. A página de Helena consulta o resultado e o apresenta em texto e, em navegadores compatíveis, em voz. Silêncio, assunto diferente ou queda não geram confirmação clínica. Em modo de ensaio, os botões simulam a participação de Ana e a interface identifica a simulação. Não são armazenados o telefone, a transcrição ou o áudio neste fluxo.

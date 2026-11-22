@@ -60,7 +60,7 @@ describe("cenários da demo", () => {
     ])
       expect(demoPhone(raw)).toBeNull();
   });
-  it.each(demoScenarios)(
+  it.each(demoScenarios.filter((s) => s.id !== "remedio"))(
     "encaminha a ligação com a fala de $title",
     async (scenario) => {
       enableAuthorized();
@@ -208,7 +208,7 @@ describe("cenários da demo", () => {
     expect(
       (
         await POST(
-          request({ kind: "call", to: "+12025550143", scenario: "remedio" }),
+          request({ kind: "call", to: "+12025550143", scenario: "almoco" }),
         )
       ).status,
     ).toBe(502);
