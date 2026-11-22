@@ -1215,22 +1215,16 @@ details.card {
   margin: 30px auto 20px;
   overflow: hidden;
   border-radius: 50%;
-  background: radial-gradient(circle at 40% 29%, #fff6e7, #eee6cf 67%, #dbcdb3);
+  background: #eee6d7 url("/avatars/lia-realista.webp") center / cover no-repeat;
   box-shadow: 0 0 0 6px #faf7ef, 0 0 0 7px #e6dfca;
 }
-.avatar-poses, .avatar-canvas {
+.avatar-canvas {
   position: absolute;
   inset: 0;
   height: 100%;
   width: 100%;
+  visibility: hidden;
 }
-.avatar-poses {
-  background: url("/avatars/lia.webp") center / contain no-repeat;
-}
-.avatar-live {
-  background: url("/avatars/lia-poses.webp") 0% 0% / 300% 200% no-repeat;
-}
-.avatar-canvas { visibility: hidden; }
 .voice-card h2 {
   font-family: Georgia, serif;
   font-size: 30px;

@@ -1,5 +1,5 @@
 "use client";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   LoaderCircle,
   Mic,
@@ -8,7 +8,7 @@ import {
   ShieldCheck,
   Volume2,
 } from "lucide-react";
-import type { IAgoraRTCClient, IMicrophoneAudioTrack } from "agora-rtc-sdk-ng";
+import type { IAgoraRTCClient, IMicrophoneAudioTrack, IRemoteAudioTrack } from "agora-rtc-sdk-ng";
 import type { RTMClient } from "agora-rtm";
 import type { AgoraVoiceAI } from "agora-agent-client-toolkit";
 import { api, type Data } from "@/lib/client";
@@ -44,7 +44,7 @@ const stateText: Record<State, string> = {
   listening: "está ouvindo",
   thinking: "está preparando a resposta",
   speaking: "está falando",
-  interrupted: "Você interrompeu a resposta",
+  interrupted: "Estou ouvindo você",
   reconnecting: "Reconectando à Agora…",
   error: "A conversa precisa de atenção",
   disconnected: "Conversa encerrada",
@@ -99,17 +99,11 @@ export function VoicePanel({
     meter?: ReturnType<typeof setInterval>;
   }>({});
   const cancelled = useRef(false);
-  const agentLevel = useCallback(() => {
-    const { rtc, session } = refs.current;
-    if (cancelled.current || !session || !rtc) return 0;
-    const agent = rtc.remoteUsers.find(
-      user => String(user.uid) === String(session.agent_uid),
-    );
-    return agent?.audioTrack?.isPlaying ? agent.audioTrack.getVolumeLevel() : 0;
-  }, []);
+  const [avatarTrack, setAvatarTrack] = useState<IRemoteAudioTrack | null>(null);
   const alive = useRef(true),
     busy = useRef(false);
   const cleanup = async () => {
+    setAvatarTrack(null);
     cancelled.current = true;
     const r = refs.current;
     clearTimeout(r.timer);
@@ -172,6 +166,7 @@ export function VoicePanel({
     let reportedError = "";
     function fail(message: string) {
       reportedError = message;
+      if (alive.current) setAvatarTrack(null);
       cancelled.current = true;
       clearTimeout(owned.timer);
       void owned.cleanup?.().then((failures) => {
@@ -314,12 +309,19 @@ export function VoicePanel({
           );
         }
       });
+      rtc.on("user-unpublished", (user, media) => {
+        if (media === "audio" && String(user.uid) === String(session.agent_uid) && alive.current)
+          setAvatarTrack(null);
+      });
       rtc.on("user-published", async (user, media) => {
         try {
           await rtc.subscribe(user, media);
-          if (media === "audio") {
+          if (media === "audio" && alive.current && !cancelled.current && refs.current.rtc === rtc) {
             user.audioTrack?.play();
-            if (alive.current) setJoined(true);
+            if (String(user.uid) === String(session.agent_uid)) {
+              setAvatarTrack(user.audioTrack || null);
+              setJoined(true);
+            }
           }
         } catch {
           if (alive.current)
@@ -462,7 +464,8 @@ export function VoicePanel({
         name={speaker.name}
         live={joined && active && state !== "reconnecting"}
         canSpeak={state === "speaking" || state === "connected"}
-        agentLevel={agentLevel}
+        listening={state === "listening" || state === "interrupted"}
+        track={avatarTrack}
       />
       <h2>
         {["listening", "thinking", "speaking"].includes(state)
