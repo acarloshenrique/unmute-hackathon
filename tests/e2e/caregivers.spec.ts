@@ -136,6 +136,8 @@ test("Ana escolhe Rosa, recarrega e Helena só solicita microfone depois de acei
       if (req.url().endsWith("/api/voice/start")) voiceStarts++;
     });
     await h.goto("/idoso");
+    await expect(h.getByRole("img", { name: "Rosa, assistente virtual" })).toBeVisible();
+    await expect(h.getByText("Microfone desligado", { exact: true })).toBeVisible();
     await expect(h.locator(".voice-invitation")).toContainText(
       "Rosa quer conversar com você",
     );

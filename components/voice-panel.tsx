@@ -1,7 +1,6 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
-  AudioLines,
   LoaderCircle,
   Mic,
   MicOff,
@@ -18,6 +17,7 @@ import {
   type CaregiverId,
   type CaregiverProfile,
 } from "@/lib/caregivers";
+import { ConversationAvatar } from "./conversation-avatar";
 import { makeCleanup } from "@/lib/voice-cleanup";
 import {
   agentUiState,
@@ -99,6 +99,14 @@ export function VoicePanel({
     meter?: ReturnType<typeof setInterval>;
   }>({});
   const cancelled = useRef(false);
+  const agentLevel = useCallback(() => {
+    const { rtc, session } = refs.current;
+    if (cancelled.current || !session || !rtc) return 0;
+    const agent = rtc.remoteUsers.find(
+      user => String(user.uid) === String(session.agent_uid),
+    );
+    return agent?.audioTrack?.isPlaying ? agent.audioTrack.getVolumeLevel() : 0;
+  }, []);
   const alive = useRef(true),
     busy = useRef(false);
   const cleanup = async () => {
@@ -450,18 +458,19 @@ export function VoicePanel({
           {joined ? "AGENTE NO CANAL AGORA" : "VOZ AO VIVO · AGORA"}
         </span>
       </div>
-      <div className={`voice-orb ${state === "speaking" ? "is-speaking" : ""}`}>
-        <div className="voice-orb-inner">
-          <AudioLines size={58} strokeWidth={1.3} />
-        </div>
-      </div>
+      <ConversationAvatar
+        name={speaker.name}
+        live={joined && active && state !== "reconnecting"}
+        canSpeak={state === "speaking" || state === "connected"}
+        agentLevel={agentLevel}
+      />
       <h2>
         {["listening", "thinking", "speaking"].includes(state)
           ? `${speaker.name} ${stateText[state]}`
           : stateText[state]}
       </h2>
       <p>
-        {speaker.name} · {speaker.style}
+        {speaker.name} · Assistente virtual · {speaker.style}
       </p>
       {invitation && !active && (
         <div className="voice-invitation">
@@ -505,7 +514,6 @@ export function VoicePanel({
               disabled={!configured || !consented || responding}
               onClick={() => void start()}
             >
-              <Mic size={23} />{" "}
               {responding
                 ? "Aguarde…"
                 : invitation
