@@ -1448,9 +1448,14 @@ function Elder({
     >([]),
     [busy, setBusy] = useState(false),
     [error, setError] = useState("");
+  const fastingReturn = data.notifications.find(n => n.type === "fasting_return");
   return (
     <div className="elder-layout">
       <div>
+        {fastingReturn && <section className="card fasting-dialog fasting-return" aria-live="polite">
+          <p className="eyebrow">LIA DE VOLTA PARA HELENA</p><h2>Café, remédio e jejum</h2><p>{fastingReturn.message}</p>
+          <button className="button button-light" onClick={()=>{if(window.speechSynthesis){window.speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(fastingReturn.message);u.lang="pt-BR";window.speechSynthesis.speak(u)}}}>Ouvir o retorno da Lia</button>
+        </section>}
         <VoicePanel
           key={
             data.consents.some((c) => c.scope === "checkins")
@@ -1465,6 +1470,7 @@ function Elder({
           consented={data.consents.some((c) => c.scope === "checkins")}
           onChange={refresh}
         />
+        <Link className="text-link" href="/demo/jejum">Cenário 2 · Perguntar sobre café em jejum</Link>
         {data.proposals.length > 0 && (
           <section className="card proposals">
             <span className="eyebrow">VOCÊ DECIDE</span>

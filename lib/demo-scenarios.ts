@@ -1,3 +1,4 @@
+import { fasting } from "./fasting-script";
 export const demoScenarios = [
   {
     id: "feira",
@@ -8,10 +9,10 @@ export const demoScenarios = [
   },
   {
     id: "remedio",
-    title: "Lembrete de remédio",
-    description: "Escolha como responder a um lembrete da rotina.",
-    message:
-      "Na rotina de exemplo da Helena, apareceu um lembrete de remédio. Você prefere responder agora ou deixar o lembrete para mais tarde?",
+    title: "Café, remédio e jejum",
+    description:
+      "Helena pergunta sobre café em jejum. Lia consulta a filha Ana e volta com a resposta.",
+    message: fasting.ask,
   },
   {
     id: "consulta",

@@ -21,10 +21,10 @@ test("visitante simula canais sem telefone ou envio e abre o painel de Ana", asy
     page.getByText("Modo simulação.", { exact: false }),
   ).toBeVisible();
 
-  await page.getByText("Lembrete de remédio", { exact: true }).click();
+  await page.getByText("Companhia na consulta", { exact: true }).click();
   await page.getByRole("button", { name: "Simular ligação" }).click();
   await expect(page.getByRole("status")).toHaveText(
-    "Simulação: Ligação para “Lembrete de remédio”. Nenhum contato foi feito.",
+    "Simulação: Ligação para “Companhia na consulta”. Nenhum contato foi feito.",
   );
   await page.getByText("Áudio", { exact: true }).click();
   await page.getByText("Conversa sobre o almoço", { exact: true }).click();
@@ -63,4 +63,36 @@ test("a API bloqueia, por padrão, envio real até com sessão de demonstração
   });
   expect(response.status()).toBe(503);
   expect(await response.json()).toMatchObject({ error: "OUTREACH_DISABLED" });
+});
+
+test("cenário 2 mantém os papéis e entrega sim, não ou ausência de resposta a Helena", async ({
+  page,
+}) => {
+  let contact = 0;
+  page.on("request", (r) => {
+    if (r.method() === "POST" && /api\/(outreach|jejum)/.test(r.url()))
+      contact++;
+  });
+  await page.goto("/demo");
+  await page.getByText("Café, remédio e jejum", { exact: true }).click();
+  await page.getByRole("link", { name: "Abrir cenário de jejum" }).click();
+  for (const [choice, expected] of [
+    ["Não", "a Ana respondeu que não"],
+    ["Sim", "a Ana disse que sim"],
+    ["Não sei", "a Ana disse que não sabe"],
+    ["Sem resposta", "não consegui confirmar uma resposta"],
+  ]) {
+    await page
+      .getByRole("button", { name: "Usar a pergunta de Helena" })
+      .click();
+    await page
+      .getByRole("button", { name: "Simular ligação para Ana" })
+      .click();
+    await page.getByRole("button", { name: choice, exact: true }).click();
+    await expect(
+      page.getByRole("heading", { name: new RegExp(expected) }),
+    ).toBeVisible();
+    await page.getByRole("button", { name: "Recomeçar o cenário" }).click();
+  }
+  expect(contact).toBe(0);
 });
