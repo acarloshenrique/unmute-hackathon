@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useEffectEvent, useRef, useState } from "react";
 import {
   LoaderCircle,
   Mic,
@@ -64,8 +64,11 @@ export function VoicePanel({
   consented,
   caregiver,
   invitation,
+  demoScenario, startOnOpen = false,
   onChange,
 }: {
+  demoScenario?: import("@/lib/demo-scenarios").DemoScenarioId;
+  startOnOpen?: boolean;
   configured: boolean;
   consented: boolean;
   caregiver: CaregiverProfile;
@@ -154,6 +157,12 @@ export function VoicePanel({
       void refs.current.cleanup?.();
     };
   }, []);
+  const startFromDemo = useEffectEvent(() => { void start(); });
+  useEffect(() => {
+    if (!startOnOpen || !configured || !consented) return;
+    const timer = setTimeout(() => startFromDemo(), 0);
+    return () => clearTimeout(timer);
+  }, [startOnOpen, configured, consented]);
   async function start() {
     if (busy.current) return;
     busy.current = true;
@@ -270,6 +279,7 @@ export function VoicePanel({
       stage = "agent";
       const session = await api<Session>("/api/voice/start", {
         invitation_id: invitation?.id,
+        demo_scenario: demoScenario,
       });
       if (alive.current) setSessionCaregiver(session.caregiver.id);
       owned.session = session;

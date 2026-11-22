@@ -54,7 +54,7 @@ O ARES agora recebe idioma português explícito. No SDK instalado, omitir o idi
 
 ## Ferramenta, consentimento e persistência
 
-`prepareRequest` fica em `llm.tools`, habilitada por `withTools(true)`. A Agora chama apenas POST `/api/voice/tools/{sessionId}/prepare-request`.
+`prepareRequest` fica em `llm.tools`, habilitada por `withTools(true)`. A Agora chama os endpoints autorizados `prepare-request` e `care-context` sob `/api/voice/tools/{sessionId}/`.
 
 - Bearer aleatório vinculado à sessão, validade curta, hash em SQLite e revogação no encerramento.
 - Identidade e destinatário derivados no servidor; o modelo não escolhe IDs de família ou usuário.
@@ -124,3 +124,9 @@ HTTP 200 ao iniciar agente, estado RUNNING e ingresso no canal não comprovam fa
 Em `/demo`, o segundo cartão abre `/demo/jejum`. O mesmo roteiro pode ser aberto na tela da pessoa idosa. Helena faz a pergunta por voz em um navegador compatível ou usa o texto do exemplo. Ela permite que Lia consulte Ana. A pergunta à filha é se a **equipe do exame já confirmou** a orientação sobre o café. Nenhuma resposta muda o horário ou a dose do remédio.
 
 Para ativar ligações neste roteiro, publique as rotas e configure no servidor a lista de teste e o opt-in existentes, `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_FROM_NUMBER` e a origem HTTPS do app em `CARECIRCLE_CALLBACK_ORIGIN`. O cenário usa Twilio Gather em português com fala ou teclas 1, 2 e 3. O webhook assinado vincula cada resposta ao pedido e ao CallSid. A página de Helena consulta o resultado e o apresenta em texto e, em navegadores compatíveis, em voz. Silêncio, assunto diferente ou queda não geram confirmação clínica. Em modo de ensaio, os botões simulam a participação de Ana e a interface identifica a simulação. Não são armazenados o telefone, a transcrição ou o áudio neste fluxo.
+
+### Contato digitado e conversa pela foto
+
+Em `/demo`, digite o telefone com DDD e escolha o cenário. No cenário de jejum, o número acompanha a navegação para a confirmação da ligação e pode ser editado antes de ligar. Nenhum telefone vai na URL. Com `CARECIRCLE_OUTREACH_ENABLED=true` e `CARECIRCLE_VISITOR_CONTACT=true`, os quatro roteiros aceitam o número digitado pelo visitante sem cadastro prévio. O envio de mensagem livre do painel conserva a lista de teste. Com apenas os canais do laboratório, o roteiro de jejum usa a ponte telefônica do painel; a captura automática da resposta requer a configuração Twilio acima. Ligações usam o canal telefônico. WhatsApp usa áudio ou texto.
+
+O botão **Conversar com a Lia** abaixo da foto abre o perfil fictício de Helena e solicita o microfone. Usa RTC/RTM Agora, o tema selecionado e a consulta de leitura `care-context` para agenda, registros e tarefas do perfil durante a conversa.

@@ -3,6 +3,7 @@ import { actorFromRequest, checkOrigin, DomainError } from "@/lib/auth";
 import { body, failure, throttle } from "@/lib/http";
 import { startVoice, stopVoice } from "@/lib/voice";
 import { voiceReply } from "@/lib/intelligence";
+import { demoScenarios } from "@/lib/demo-scenarios";
 import { audit } from "@/lib/db";
 export const runtime = "nodejs";
 export async function POST(
@@ -16,10 +17,15 @@ export async function POST(
     if (op === "start") {
       throttle(actor.id, "voice_start", 4);
       const d = z
-        .object({ invitation_id: z.string().uuid().optional() })
+        .object({
+          invitation_id: z.string().uuid().optional(),
+          demo_scenario: z.enum(demoScenarios.map((s) => s.id)).optional(),
+        })
         .strict()
         .parse(await body(req));
-      return Response.json(await startVoice(actor, d.invitation_id));
+      return Response.json(
+        await startVoice(actor, d.invitation_id, d.demo_scenario),
+      );
     }
     if (op === "stop") {
       const d = z

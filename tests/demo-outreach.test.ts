@@ -213,4 +213,27 @@ describe("cenários da demo", () => {
       ).status,
     ).toBe(502);
   });
+
+  it("usa os diferentes destinos digitados somente nos cenários do modo visitante", async () => {
+    enableAuthorized();
+    vi.stubEnv("CARECIRCLE_VISITOR_CONTACT", "true");
+    const fetch = vi.fn().mockResolvedValue(Response.json({ ok: true }));
+    vi.stubGlobal("fetch", fetch);
+    for (const to of ["(11) 98888-0101", "(21) 97777-0102"]) {
+      const res = await POST(
+        request({ kind: "call", to, scenario: "remedio" }),
+      );
+      expect(res.ok).toBe(true);
+      const url = new URL(fetch.mock.calls.at(-1)![0]);
+      expect(url.searchParams.get("to")).toBe("55" + to.replace(/\D/g, ""));
+      expect(url.searchParams.get("say")).toContain("equipe do exame");
+    }
+    expect(
+      (
+        await POST(
+          request({ kind: "call", to: "(11) 98888-0101", message: "livre" }),
+        )
+      ).status,
+    ).toBe(403);
+  });
 });

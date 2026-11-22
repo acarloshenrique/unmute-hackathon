@@ -9,7 +9,7 @@ import {
   answerLabels,
   type FastingState,
 } from "@/lib/fasting-script";
-import { demoPhone } from "@/lib/demo-scenarios";
+import { demoPhone, demoPhoneDraftKey } from "@/lib/demo-scenarios";
 import { api } from "@/lib/client";
 type Stage = "intro" | "ready" | FastingState;
 type Recognition = {
@@ -31,7 +31,13 @@ function speak(text: string) {
   u.rate = 0.94;
   window.speechSynthesis.speak(u);
 }
-export function FastingDemo({ live }: { live: boolean }) {
+export function FastingDemo({
+  mode,
+}: {
+  mode: "automatic" | "bridge" | "rehearsal";
+}) {
+  const live = mode === "automatic";
+  const [bridgeSent, setBridgeSent] = useState(false);
   const [stage, setStage] = useState<Stage>("intro"),
     [phone, setPhone] = useState(""),
     [request, setRequest] = useState(""),
@@ -42,6 +48,11 @@ export function FastingDemo({ live }: { live: boolean }) {
     mic = useRef<Recognition | null>(null);
   useEffect(() => {
     const t = setTimeout(() => {
+      const entered = sessionStorage.getItem(demoPhoneDraftKey);
+      if (entered) {
+        setPhone(entered);
+        sessionStorage.removeItem(demoPhoneDraftKey);
+      }
       const id = live ? sessionStorage.getItem(savedKey) : null;
       if (id) {
         setRequest(id);
@@ -138,14 +149,16 @@ export function FastingDemo({ live }: { live: boolean }) {
   }
   async function dial() {
     if (lock.current) return;
-    if (!live) {
-      setStage("waiting");
-      speak(fasting.ask);
-      return;
-    }
+
     const to = demoPhone(phone);
     if (!to) {
       setError("Digite um telefone com DDD.");
+      return;
+    }
+    if (mode === "rehearsal") {
+      setError("");
+      setStage("waiting");
+      speak(fasting.ask);
       return;
     }
     setError("");
@@ -154,6 +167,17 @@ export function FastingDemo({ live }: { live: boolean }) {
     const id = sessionStorage.getItem(savedKey) || crypto.randomUUID();
     try {
       await api("/api/demo", { action: "login", persona: "helena" });
+      if (mode === "bridge") {
+        const res = await api<{ ok: boolean }>("/api/outreach", {
+          kind: "call",
+          to,
+          scenario: "remedio",
+        });
+        if (!res.ok) throw new Error("O canal de voz não confirmou o pedido.");
+        setBridgeSent(true);
+        setStage("waiting");
+        return;
+      }
       sessionStorage.setItem(savedKey, id);
       const response = await fetch("/api/jejum", {
         method: "POST",
@@ -212,8 +236,8 @@ export function FastingDemo({ live }: { live: boolean }) {
         />
       </section>
       <p className="fasting-mode">
-        {live
-          ? "Ligação real · número de teste autorizado"
+        {mode !== "rehearsal"
+          ? "Ligação telefônica real"
           : "Ensaio guiado · respostas simuladas, sem ligação telefônica"}
       </p>
       <section className="card fasting-dialog" aria-live="polite">
@@ -242,31 +266,43 @@ export function FastingDemo({ live }: { live: boolean }) {
           <h2>{fasting.ask}</h2>
           {stage === "ready" && (
             <>
-              {live && (
+              {
                 <label>
-                  Telefone de teste de Ana com DDD
+                  Telefone com DDD para receber como Ana
                   <input
                     type="tel"
+                    inputMode="tel"
+                    placeholder="(11) 99999-9999"
+                    maxLength={32}
                     autoComplete="tel"
                     value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
+                    onChange={(e) => {
+                      setPhone(e.target.value);
+                      setError("");
+                    }}
                   />
                 </label>
-              )}
+              }
               <button className="button" disabled={busy} onClick={dial}>
                 <Phone size={18} />
                 {busy
                   ? "Solicitando…"
-                  : live
-                    ? "Autorizar e ligar para Ana"
+                  : mode !== "rehearsal"
+                    ? "Ligar para este número"
                     : "Simular ligação para Ana"}
               </button>
             </>
           )}
           {stage === "waiting" && (
             <>
-              <p role="status">Aguardando a resposta de Ana.</p>
-              {!live && (
+              <p role="status">
+                {bridgeSent
+                  ? "Ligação solicitada para o número com final " +
+                    phone.replace(/\D/g, "").slice(-4) +
+                    ". Nesta conexão, a resposta é ouvida no telefone e precisa ser confirmada pela participante."
+                  : "Aguardando a resposta de Ana."}
+              </p>
+              {mode === "rehearsal" && (
                 <div className="button-row">
                   {(
                     Object.entries(answerLabels) as [

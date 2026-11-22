@@ -3,7 +3,10 @@ import { z } from "zod";
 import { actorFromRequest, checkOrigin } from "@/lib/auth";
 import { demoPhone, demoScenarios } from "@/lib/demo-scenarios";
 import { body, failure, throttle } from "@/lib/http";
-import { allowedOutreachNumbers } from "@/lib/outreach-policy";
+import {
+  allowedOutreachNumbers,
+  visitorDialingEnabled,
+} from "@/lib/outreach-policy";
 export const runtime = "nodejs";
 
 function dialKey(): string {
@@ -39,15 +42,6 @@ export async function POST(req: Request) {
       ])
       .parse(await body(req));
     const demo = "scenario" in d;
-    if (demo && d.scenario === "remedio")
-      return Response.json(
-        {
-          error: "GUIDED_SCENARIO",
-          message:
-            "Abra o cenário de jejum para ligar e receber a resposta de Ana.",
-        },
-        { status: 409 },
-      );
     const number = demoPhone(d.to);
     if (!number)
       return Response.json(
@@ -55,7 +49,8 @@ export async function POST(req: Request) {
         { status: 400 },
       );
     const allowed = allowedOutreachNumbers();
-    if (!allowed)
+    const visitor = demo && visitorDialingEnabled();
+    if (!allowed && !visitor)
       return Response.json(
         {
           error: "OUTREACH_DISABLED",
@@ -63,7 +58,7 @@ export async function POST(req: Request) {
         },
         { status: 503 },
       );
-    if (!allowed.has(number))
+    if (!visitor && !allowed?.has(number))
       return Response.json(
         {
           error: "OUTREACH_NOT_ALLOWED",
@@ -75,7 +70,8 @@ export async function POST(req: Request) {
     const num = number.slice(1);
     const greeting = "Oi, aqui é a Lia, assistente virtual do CareCircle.";
     const message = demo
-      ? demoScenarios.find((s) => s.id === d.scenario)!.message
+      ? demoScenarios.find((s) => s.id === d.scenario)!.message +
+        (d.scenario === "remedio" ? " Responda sim, não ou não sei." : "")
       : d.message;
     if (d.kind === "text") {
       const url = process.env.CARECIRCLE_EVOLUTION_TEXT_URL;

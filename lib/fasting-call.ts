@@ -4,7 +4,10 @@ import { one, run, transaction, now } from "./db";
 import { consent } from "./domain";
 import { DEMO } from "./seed";
 import { throttle } from "./http";
-import { allowedOutreachNumbers } from "./outreach-policy";
+import {
+  allowedOutreachNumbers,
+  visitorDialingEnabled,
+} from "./outreach-policy";
 import {
   fasting,
   readAnswer,
@@ -106,13 +109,14 @@ export async function startFastingCall(
     throw new DomainError("ELDER", "Abra o cenário no perfil de Helena.", 403);
   const allowed = allowedOutreachNumbers(),
     cfg = fastingConfig();
-  if (!cfg || !allowed)
+  const visitor = visitorDialingEnabled();
+  if (!cfg || (!allowed && !visitor))
     throw new DomainError(
       "UNAVAILABLE",
       "A ligação com retorno ainda não está configurada neste ambiente.",
       503,
     );
-  if (!allowed.has(number))
+  if (!visitor && !allowed?.has(number))
     throw new DomainError(
       "NUMBER",
       "Use o número de teste autorizado para representar Ana.",

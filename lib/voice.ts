@@ -5,6 +5,8 @@ import { randomBytes, randomInt } from "node:crypto";
 import { type Actor, DomainError, hash, profileFor } from "./auth";
 import { audit, id, now, one, rows, run } from "./db";
 import { consent, getCaregiver, acceptedInvitation } from "./domain";
+import type { DemoScenarioId } from "./demo-scenarios";
+import { CAREGIVERS } from "./caregivers";
 import { createManagedAgent } from "./managed-agent";
 export const AGENT_UID = 123456;
 function configuration() {
@@ -56,7 +58,7 @@ const clientFor = (c: { appId: string; appCertificate: string }) =>
     appId: c.appId,
     appCertificate: c.appCertificate,
   });
-export async function startVoice(actor: Actor, invitationId?: string) {
+export async function startVoice(actor: Actor, invitationId?: string, demoScenario?: DemoScenarioId) {
   if (actor.role !== "elder")
     throw new DomainError(
       "ELDER_REQUIRED",
@@ -70,7 +72,7 @@ export async function startVoice(actor: Actor, invitationId?: string) {
       "Autorize conversas com Lia primeiro.",
       403,
     );
-  const caregiver = getCaregiver(String(p.id));
+  const caregiver = demoScenario ? CAREGIVERS.lia : getCaregiver(String(p.id));
   const c = configuration();
   await cleanupExpired();
   if (
@@ -118,6 +120,7 @@ export async function startVoice(actor: Actor, invitationId?: string) {
       capability,
       caregiver.id,
       String(p.display_name),
+      demoScenario,
     );
     const session = agent.createSession({
       channel,
