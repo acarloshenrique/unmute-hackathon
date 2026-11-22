@@ -3,6 +3,7 @@ import { z } from "zod";
 import { actorFromRequest, checkOrigin } from "@/lib/auth";
 import { demoPhone, demoScenarios } from "@/lib/demo-scenarios";
 import { body, failure, throttle } from "@/lib/http";
+import { allowedOutreachNumbers } from "@/lib/outreach-policy";
 export const runtime = "nodejs";
 
 function dialKey(): string {
@@ -25,26 +26,44 @@ export async function POST(req: Request) {
     const actor = actorFromRequest(req);
     const d = z
       .union([
-        z.object({
+        z.strictObject({
           kind: z.enum(["whatsapp", "call", "text"]),
           to: z.string().max(32),
           scenario: z.enum(demoScenarios.map((s) => s.id)),
         }),
-        z.object({
+        z.strictObject({
           kind: z.enum(["whatsapp", "call"]),
-          to: z.string().regex(/^[+\d\s()-]{8,20}$/),
+          to: z.string().max(32),
           message: z.string().min(1).max(400),
         }),
       ])
       .parse(await body(req));
     const demo = "scenario" in d;
-    const num = demo ? demoPhone(d.to)?.slice(1) : d.to.replace(/\D/g, "");
-    if (!num || (!demo && (num.length < 10 || num.length > 15)))
+    const number = demoPhone(d.to);
+    if (!number)
       return Response.json(
-        { error: "Número inválido.", message: "Confira o telefone e o DDD." },
+        { error: "INVALID_NUMBER", message: "Confira o telefone e o DDD." },
         { status: 400 },
       );
-    if (demo) throttle(actor.id, "demo_outreach", 30);
+    const allowed = allowedOutreachNumbers();
+    if (!allowed)
+      return Response.json(
+        {
+          error: "OUTREACH_DISABLED",
+          message: "Os envios reais estão desativados neste ambiente.",
+        },
+        { status: 503 },
+      );
+    if (!allowed.has(number))
+      return Response.json(
+        {
+          error: "OUTREACH_NOT_ALLOWED",
+          message: "O envio real é restrito aos números de teste autorizados.",
+        },
+        { status: 403 },
+      );
+    throttle(actor.id, "demo_outreach");
+    const num = number.slice(1);
     const greeting = "Oi, aqui é a Lia, assistente virtual do CareCircle.";
     const message = demo
       ? demoScenarios.find((s) => s.id === d.scenario)!.message

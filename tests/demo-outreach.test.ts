@@ -1,6 +1,8 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { readFileSync } from "node:fs";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { demoPhone, demoScenarios } from "@/lib/demo-scenarios";
 import { POST } from "@/app/api/outreach/route";
+import { throttle } from "@/lib/http";
 
 vi.mock("@/lib/auth", async (load) => ({
   ...(await load<typeof import("@/lib/auth")>()),
@@ -20,6 +22,20 @@ const request = (data: object) =>
     method: "POST",
     body: JSON.stringify(data),
   });
+beforeEach(() => {
+  vi.clearAllMocks();
+  vi.stubEnv("CARECIRCLE_OUTREACH_ENABLED", "false");
+  vi.stubEnv("CARECIRCLE_OUTREACH_TEST_NUMBERS", "");
+});
+
+function enableAuthorized() {
+  vi.stubEnv("CARECIRCLE_OUTREACH_ENABLED", "true");
+  vi.stubEnv(
+    "CARECIRCLE_OUTREACH_TEST_NUMBERS",
+    "+55 (11) 98765-4321, +1 (202) 555-0143",
+  );
+}
+
 afterEach(() => {
   vi.unstubAllGlobals();
   vi.unstubAllEnvs();
@@ -47,6 +63,7 @@ describe("cenários da demo", () => {
   it.each(demoScenarios)(
     "encaminha a ligação com a fala de $title",
     async (scenario) => {
+      enableAuthorized();
       const fetch = vi.fn().mockResolvedValue(Response.json({ ok: true }));
       vi.stubGlobal("fetch", fetch);
       const response = await POST(
@@ -60,7 +77,8 @@ describe("cenários da demo", () => {
       expect(url.searchParams.get("say")).toBe(scenario.message);
     },
   );
-  it("envia texto e áudio pelos canais distintos e preserva o envio livre do painel", async () => {
+  it("envia texto e áudio pelos canais distintos, incluindo o painel com destinatário autorizado", async () => {
+    enableAuthorized();
     vi.stubEnv(
       "CARECIRCLE_EVOLUTION_TEXT_URL",
       "http://localhost:8082/message/sendText/test",
@@ -105,7 +123,64 @@ describe("cenários da demo", () => {
       "Mensagem do painel",
     );
   });
-  it("não confirma envio rejeitado ou sem configuração", async () => {
+  const allFormats = [
+    { kind: "call", scenario: "feira" },
+    { kind: "whatsapp", scenario: "feira" },
+    { kind: "text", scenario: "feira" },
+    { kind: "call", message: "Mensagem do painel" },
+    { kind: "whatsapp", message: "Mensagem do painel" },
+  ];
+
+  async function expectAllDenied(to: string, status: number, error: string) {
+    const fetch = vi.fn();
+    vi.stubGlobal("fetch", fetch);
+    for (const format of allFormats) {
+      const response = await POST(request({ ...format, to }));
+      expect(response.status).toBe(status);
+      expect(await response.json()).toMatchObject({ error });
+    }
+    expect(fetch).not.toHaveBeenCalled();
+    expect(readFileSync).not.toHaveBeenCalled();
+    expect(throttle).not.toHaveBeenCalled();
+  }
+
+  it("sem opt-in não usa nenhuma ponte mesmo com lista válida", async () => {
+    enableAuthorized();
+    vi.stubEnv("CARECIRCLE_OUTREACH_ENABLED", "false");
+    await expectAllDenied("+12025550143", 503, "OUTREACH_DISABLED");
+  });
+
+  it.each(["", "+12025550143, inválido"])(
+    "com lista ausente ou malformada (%s) nenhum canal funciona",
+    async (list) => {
+      enableAuthorized();
+      vi.stubEnv("CARECIRCLE_OUTREACH_TEST_NUMBERS", list);
+      await expectAllDenied("+12025550143", 503, "OUTREACH_DISABLED");
+    },
+  );
+
+  it("bloqueia qualquer destino fora da lista em todos os canais e no painel", async () => {
+    enableAuthorized();
+    await expectAllDenied("+12025550144", 403, "OUTREACH_NOT_ALLOWED");
+  });
+
+  it("aplica a mesma política ao telefone local no formato legado de ligação", async () => {
+    enableAuthorized();
+    const fetch = vi.fn().mockResolvedValue(Response.json({ ok: true }));
+    vi.stubGlobal("fetch", fetch);
+    const response = await POST(
+      request({ kind: "call", to: "(11) 98765-4321", message: "Painel" }),
+    );
+    expect(response.ok).toBe(true);
+    expect(throttle).toHaveBeenCalledWith("test", "demo_outreach");
+    expect(fetch).toHaveBeenCalledTimes(1);
+    expect(new URL(fetch.mock.calls[0][0]).searchParams.get("to")).toBe(
+      "5511987654321",
+    );
+  });
+
+  it("não confirma envio rejeitado ou sem configuração do canal", async () => {
+    enableAuthorized();
     vi.stubEnv("CARECIRCLE_EVOLUTION_TEXT_URL", "");
     const fetch = vi
       .fn()

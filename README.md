@@ -6,9 +6,9 @@ CareCircle transforma conversas autorizadas em coordenação familiar. Helena, A
 
 ## Experimentar a Lia em `/demo`
 
-O visitante escolhe companhia para a feira, lembrete de remédio, companhia na consulta ou conversa sobre o almoço. Cada cartão mostra a fala que a Lia usará. A ligação é a opção inicial. O visitante também pode solicitar áudio ou texto no WhatsApp para seu próprio telefone. Números brasileiros aceitam DDD e números internacionais aceitam o prefixo `+`.
+O visitante escolhe companhia para a feira, lembrete de remédio, companhia na consulta ou conversa sobre o almoço. Cada cartão mostra a fala que a Lia usará. Por padrão, ligação, áudio e texto são simulados na tela, sem pedir telefone nem contatar ninguém.
 
-Ligação e áudio reutilizam as pontes de `/api/outreach` do painel. O texto usa a instância Evolution v2 do time. Configure no servidor `CARECIRCLE_EVOLUTION_TEXT_URL` com a URL completa de `/message/sendText/{instancia}` e `CARECIRCLE_EVOLUTION_API_KEY` com a chave da instância. A tela avisa quando o texto está indisponível. A confirmação na tela indica que o serviço aceitou o pedido. O recebimento no telefone depende do canal.
+Para testes autorizados, habilite `CARECIRCLE_OUTREACH_ENABLED=true` e defina `CARECIRCLE_OUTREACH_TEST_NUMBERS` com números consentidos, separados por vírgula e com `+DDI`, apenas no servidor. Sem ambas as configurações válidas, o endpoint não faz envios. A mesma lista protege ligação, áudio e texto na demo e o envio do painel. Ligação e áudio reutilizam as pontes de `/api/outreach` do painel. O texto usa a instância Evolution v2 do time. Configure no servidor `CARECIRCLE_EVOLUTION_TEXT_URL` com a URL completa de `/message/sendText/{instancia}` e `CARECIRCLE_EVOLUTION_API_KEY` com a chave da instância. A tela avisa quando o texto está indisponível. A confirmação na tela indica que o serviço aceitou o pedido. O recebimento no telefone depende do canal.
 
 **Painel da família** abre `/familia` com o perfil fictício de Ana. **Controles da apresentação** leva à sala de testes em `/demo/controle`. Os quatro exemplos de contato usam falas fictícias e o envio de um exemplo não cria tarefas nem registros de saúde.
 

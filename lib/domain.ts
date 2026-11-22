@@ -13,6 +13,7 @@ import {
   invitationMessage,
   type CaregiverId,
 } from "./caregivers";
+import { familyCheckinReport } from "./checkin-report";
 import { formatTime, isQuiet, localToUtc, nextDaily, ZONE } from "./time";
 const uuid = z.string().uuid();
 const title = z.string().trim().min(1).max(160);
@@ -948,6 +949,7 @@ export function snapshot(actor: Actor) {
       actor.role === "relative" &&
       !!consent(String(p.id), "family_updates", actor.id),
     events: visibleEvents(actor),
+    checkin_report: familyCheckinReport(actor, String(p.id)),
     tasks: pendingTasks(actor, undefined, true),
     routines: rows(
       "SELECT * FROM routines WHERE care_profile_id=? ORDER BY next_run_at",

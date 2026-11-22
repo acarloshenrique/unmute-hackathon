@@ -29,6 +29,7 @@ import {
 } from "../lib/domain";
 import { localToUtc, nextDaily, ZONE } from "../lib/time";
 import { executeTool } from "../lib/intelligence";
+import { familyCheckinReport } from "../lib/checkin-report";
 import { makeCleanup } from "../lib/voice-cleanup";
 import { startVoice, voiceActor, stopVoice } from "../lib/voice";
 const temp = mkdtempSync(join(tmpdir(), "carecircle-test-"));
@@ -142,6 +143,115 @@ describe("Tempo e agenda persistente", () => {
       120000,
     );
     expect(Date.now() - before).toBeLessThan(1000);
+  });
+});
+describe("Resumo de acompanhamento familiar", () => {
+  it("não expõe rascunho ao destinatário, titular ou fora da família", () => {
+    changeConsent(helena, {
+      scope: "family_updates",
+      recipient_id: DEMO.pedro,
+      granted: true,
+    });
+    propose(
+      helena,
+      "create_task",
+      {
+        ...taskInput(),
+        title: "Rascunho privado para Pedro",
+        assignee_id: DEMO.pedro,
+      },
+      null,
+      id(),
+    );
+
+    expect(snapshot(pedro).checkin_report).toBeNull();
+    expect(snapshot(helena).checkin_report).toBeNull();
+    expect(
+      familyCheckinReport({ ...pedro, family_id: id() }, DEMO.profile),
+    ).toBeNull();
+    expect(snapshot(ana).checkin_report?.observation).not.toContain("Rascunho");
+  });
+
+  it("vincula apenas a tarefa aprovada ao destinatário e reflete seu estado", () => {
+    changeConsent(helena, {
+      scope: "family_updates",
+      recipient_id: DEMO.pedro,
+      granted: true,
+    });
+    const draft = propose(
+      helena,
+      "create_task",
+      {
+        ...taskInput(),
+        title: "Companhia para a feira",
+        assignee_id: DEMO.pedro,
+      },
+      null,
+      id(),
+    );
+    confirmProposal(helena, { proposal_id: draft.id, confirmed: true });
+    confirmProposal(helena, { proposal_id: draft.id, confirmed: true });
+    const task = pendingTasks(pedro)[0];
+    expect(pendingTasks(pedro)).toHaveLength(1);
+    expect(snapshot(pedro).checkin_report).toMatchObject({
+      situation: "Pedido compartilhado com você",
+      context: null,
+      nextStep: {
+        title: "Companhia para a feira",
+        status: "pending",
+        responsible: "Pedro",
+      },
+      source: { simulated: true },
+    });
+    expect(snapshot(ana).checkin_report?.nextStep).toBeNull();
+    updateTask(pedro, { task_id: task.id, changes: { status: "accepted" } });
+    expect(snapshot(pedro).checkin_report?.nextStep?.status).toBe("accepted");
+    updateTask(pedro, { task_id: task.id, changes: { status: "completed" } });
+    expect(snapshot(pedro).checkin_report?.nextStep?.status).toBe("completed");
+    changeConsent(helena, {
+      scope: "family_updates",
+      recipient_id: DEMO.pedro,
+      granted: false,
+    });
+    expect(snapshot(pedro).checkin_report).toBeNull();
+  });
+
+  it("mantém o relato sem verificação e não associa tarefa de outra ocorrência", () => {
+    createTask(helena, taskInput());
+    routine();
+    executeDue(at("16:00"));
+    const rr = one("SELECT id FROM routine_runs")!;
+    const draft = propose(
+      helena,
+      "confirm_routine_response",
+      {
+        routine_run_id: rr.id,
+        response: "Prefiro conversar amanhã.",
+      },
+      null,
+      id(),
+    );
+    confirmProposal(helena, { proposal_id: draft.id, confirmed: true });
+    expect(snapshot(ana).checkin_report).toMatchObject({
+      situation: "Relato compartilhado pela pessoa acompanhada",
+      context: "Conversa",
+      observation: "Helena informou: Prefiro conversar amanhã.",
+      verification: expect.stringContaining("não foi verificado"),
+      nextStep: null,
+    });
+  });
+
+  it("não confunde ausência de resposta com relato, saúde ou tarefa", () => {
+    createTask(helena, taskInput());
+    routine();
+    executeDue(at("16:00"));
+    executeDue(at("16:11"));
+    expect(snapshot(ana).checkin_report).toMatchObject({
+      situation: "Convite sem resposta",
+      observation: null,
+      verification: expect.stringContaining("não informa o estado de saúde"),
+      nextStep: null,
+    });
   });
 });
 describe("Autorização, privacidade e ferramentas", () => {

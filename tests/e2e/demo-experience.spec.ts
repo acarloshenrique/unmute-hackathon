@@ -1,15 +1,12 @@
 import { expect, test } from "@playwright/test";
 
-test("visitante escolhe exemplo e canal, informa telefone e entra no painel de Ana", async ({
+test("visitante simula canais sem telefone ou envio e abre o painel de Ana", async ({
   page,
 }) => {
-  const requests: Record<string, string>[] = [];
-  await page.route("**/api/outreach", async (route) => {
-    const data = route.request().postDataJSON();
-    requests.push(data);
-    if (requests.length === 1)
-      return route.fulfill({ status: 401, json: { error: "UNAUTHENTICATED" } });
-    await route.fulfill({ json: { ok: true, channel: data.kind } });
+  let attempts = 0;
+  await page.route("**/api/outreach", (route) => {
+    attempts++;
+    return route.abort();
   });
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/demo");
@@ -19,34 +16,29 @@ test("visitante escolhe exemplo e canal, informa telefone e entra no painel de A
   await expect(
     page.getByRole("radio", { name: "Ligação", exact: true }),
   ).toBeChecked();
-  await page.getByRole("button", { name: "Receber ligação da Lia" }).click();
+  await expect(page.getByLabel("Seu telefone com DDD")).toHaveCount(0);
   await expect(
-    page
-      .getByRole("region", { name: "Experimente no seu celular" })
-      .getByRole("alert"),
-  ).toContainText("Confira o DDD");
-  expect(requests).toHaveLength(0);
+    page.getByText("Modo simulação.", { exact: false }),
+  ).toBeVisible();
+
   await page.getByText("Lembrete de remédio", { exact: true }).click();
-  await page.getByLabel("Seu telefone com DDD").fill("(11) 98765-4321");
-  await page.getByRole("button", { name: "Receber ligação da Lia" }).click();
-  await expect(page.getByRole("status")).toContainText("Ligação solicitada");
-  expect(requests).toHaveLength(2);
-  expect(requests[1]).toEqual({
-    kind: "call",
-    scenario: "remedio",
-    to: "+5511987654321",
-  });
-  await expect(
-    page.getByRole("button", { name: "Receber ligação da Lia" }),
-  ).toBeDisabled();
+  await page.getByRole("button", { name: "Simular ligação" }).click();
+  await expect(page.getByRole("status")).toHaveText(
+    "Simulação: Ligação para “Lembrete de remédio”. Nenhum contato foi feito.",
+  );
   await page.getByText("Áudio", { exact: true }).click();
   await page.getByText("Conversa sobre o almoço", { exact: true }).click();
-  await page.getByRole("button", { name: "Receber áudio no WhatsApp" }).click();
-  await expect(page.getByRole("status")).toContainText(
-    "Envio de áudio solicitado",
+  await page.getByRole("button", { name: "Simular áudio" }).click();
+  await expect(page.getByRole("status")).toHaveText(
+    "Simulação: Áudio no WhatsApp para “Conversa sobre o almoço”. Nenhum contato foi feito.",
   );
-  expect(requests[2].scenario).toBe("almoco");
-  expect(requests[2].kind).toBe("whatsapp");
+
+  await page.getByText("Texto", { exact: true }).click();
+  await page.getByRole("button", { name: "Simular texto" }).click();
+  await expect(page.getByRole("status")).toHaveText(
+    "Simulação: Texto no WhatsApp para “Conversa sobre o almoço”. Nenhum contato foi feito.",
+  );
+  expect(attempts).toBe(0);
   expect(
     await page.evaluate(
       () => document.documentElement.scrollWidth <= innerWidth,
@@ -59,34 +51,16 @@ test("visitante escolhe exemplo e canal, informa telefone e entra no painel de A
   ).toBeVisible();
 });
 
-test("texto no WhatsApp respeita configuração e exibe falha sem confirmar envio", async ({
-  page,
+test("a API bloqueia, por padrão, envio real até com sessão de demonstração", async ({
+  request,
 }) => {
-  let attempts = 0;
-  await page.route("**/api/outreach", (route) => {
-    attempts++;
-    expect(route.request().postDataJSON().kind).toBe("text");
-    return route.fulfill({
-      status: 502,
-      json: { message: "O WhatsApp não confirmou o pedido de envio do texto." },
-    });
+  const login = await request.post("/api/demo", {
+    data: { action: "login", persona: "ana" },
   });
-  await page.goto("/demo");
-  await page.getByText("Texto", { exact: true }).click();
-  await page.getByLabel("Seu telefone com DDD").fill("+1 202 555 0143");
-  const submit = page.getByRole("button", {
-    name: "Receber texto no WhatsApp",
+  expect(login.ok()).toBe(true);
+  const response = await request.post("/api/outreach", {
+    data: { kind: "call", to: "+12025550143", scenario: "feira" },
   });
-  if (await submit.isDisabled()) {
-    await expect(page.getByRole("status")).toContainText("aguarda a conexão");
-    expect(attempts).toBe(0);
-  } else {
-    await submit.click();
-    await expect(
-      page
-        .getByRole("region", { name: "Experimente no seu celular" })
-        .getByRole("alert"),
-    ).toContainText("não confirmou");
-    expect(attempts).toBe(1);
-  }
+  expect(response.status()).toBe(503);
+  expect(await response.json()).toMatchObject({ error: "OUTREACH_DISABLED" });
 });
