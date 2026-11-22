@@ -1,5 +1,7 @@
 # Validação — voz gerenciada pela Agora
 
+> Atualização 22/11: a conversa humana completa foi executada — saudação → pedido → confirmação por voz → correção → confirmação visual → tarefa aceita. Ver [TESTES-VOZ.md](TESTES-VOZ.md). Este relatório registra as verificações anteriores a essa sessão.
+
 ## Alteração
 A pedido do usuário, substituído o OpenAI Realtime pelo pipeline gerenciado oficial Agora: Deepgram Nova-3 pt-BR, GPT-4o-mini e MiniMax Speech 2.6 Turbo com voz Portuguese_Wiselady. Sem chave própria de provedor. `prepareRequest` passa de `mllm.tools` para `llm.tools`; endpoint, consentimento, revisão, confirmação visual e persistência são preservados. Não houve migração de banco nem deploy; a publicação no GitHub foi autorizada posteriormente pelo usuário.
 

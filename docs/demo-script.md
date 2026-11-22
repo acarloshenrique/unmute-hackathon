@@ -1,6 +1,6 @@
 # Demo Agora gerenciada — companhia para a feira
 
-**Voz gerenciada implementada, conversa de áudio ainda não validada.** Os testes HTTP e de interface usam pessoas e sessões fictícias; não representam áudio real.
+**Voz gerenciada implementada; conversa de áudio real validada em 22/11 — ver `docs/TESTES-VOZ.md`.** Os testes HTTP e de interface usam pessoas e sessões fictícias; não representam áudio real por si sós.
 
 ## Preparação
 
@@ -19,6 +19,6 @@ Helena autoriza convites e compartilhamento com Pedro em /idoso. Pedro abre /fam
 
 Segundo teste, em cenário limpo: preparar e corrigir, mas tocar Não compartilhar. Pedro não recebe cartão. Não resetar a demo enquanto houver sessão real ativa.
 
-## Marco de áudio pendente
+## Verificação de áudio — estado
 
-É obrigatório verificar fala real, resposta audível, caminho Agora, idioma, limpeza do microfone e interrupção. Um agente presente no canal não comprova conversa bidirecional. Se interrupção não for estável, não fazer a gravação depender dela. Sem configuração/saldo, apresentar apenas o teste de interface como tal e manter a voz marcada como pendente.
+Fala real, resposta audível, caminho Agora, idioma e limpeza do microfone foram verificados em 22/11 (`docs/TESTES-VOZ.md`). Barge-in isolado durante a fala do agente e desconexão prolongada ainda não foram exercitados. Um agente presente no canal não comprova conversa bidirecional. Se interrupção não for estável, não fazer a gravação depender dela. Sem configuração/saldo, apresentar apenas o teste de interface como tal e manter a voz marcada como pendente.

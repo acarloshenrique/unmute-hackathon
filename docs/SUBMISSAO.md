@@ -8,17 +8,17 @@
 
 **Solução.** CareCircle é coordenação familiar onde o idoso participa por voz. A cuidadora (Ana) agenda um convite; a assistente Lia conversa com a idosa (Helena) em português; o pedido dela vira um rascunho privado por function calling; Helena revisa e confirma na tela; só então o pedido é compartilhado com o destinatário escolhido (Pedro), que aceita a tarefa. O diferencial é o consentimento por design: **voz nunca autoriza, silêncio não é consentimento** — a confirmação é sempre visual e o compartilhamento é opt-in por destinatário.
 
-A mesma Lia alcança o **WhatsApp** (canal que o idoso já usa): conversa por nota de voz, lê o estado real do círculo, mostra as telas do app quando pedem, registra a agenda do círculo (idoso, familiares, médicos, laboratório, farmácia, números úteis) e — a pedido explícito de um membro — envia **pedidos de agendamento em áudio** para contatos e **avisos de responsabilidade** para a família. A regra de consentimento se mantém: enviar o pedido é a ação que a própria pessoa solicitou; confirmar agenda continua sendo do humano do outro lado.
+A mesma Lia alcança o **WhatsApp** (canal que o idoso já usa): conversa por nota de voz, lê o estado real do círculo, mostra as telas do app quando pedem, registra a agenda do círculo (idoso, familiares, médicos, laboratório, farmácia, números úteis) e — a pedido explícito de um membro — envia **pedidos de agendamento em áudio** para contatos e **avisos de responsabilidade** para a família. A regra de consentimento se mantém: enviar o pedido é a ação que a própria pessoa solicitou; confirmar agenda continua sendo do humano do outro lado. O painel `/familia` reflete essa ponte: cartões de **Remédios** e **Agenda do círculo** (números mascarados) e o cartão **Canais reais**, que envia nota de voz no WhatsApp ou dispara ligação real a partir da mensagem digitada.
 
-**Uso da Agora.** RTC transporta o áudio do navegador; RTM carrega estado e legendas em tempo real; a sessão roda no Conversational AI gerenciado da Agora — STT (ARES pt-BR com hotwords de domínio) → LLM com ferramentas (única ação disponível: `prepareRequest`, executada server-side) → TTS na edge — com SAL speaker-locking e VAD para turnos limpos e interrupção. Na demo, a correção falada "às dez da manhã" revisa o mesmo rascunho ao vivo. O **próprio pitch é narrado pela Lia**: os takes foram gerados por um agente Conversational AI num canal RTC (endpoint `speak`) e capturados do áudio do canal — a voz do produto narra a própria história. No WhatsApp, a mesma persona usa Whisper + LLM + TTS por HTTP (a edge não disparava turno de forma confiável com áudio push — declarado); a sessão Agora 100% gerenciada segue sendo a demo do app.
+**Uso da Agora.** RTC transporta o áudio do navegador; RTM carrega estado e legendas em tempo real; a sessão roda no Conversational AI gerenciado da Agora — STT (ARES pt-BR com hotwords de domínio) → LLM com ferramentas (única ação disponível: `prepareRequest`, executada server-side) → TTS na edge — com SAL speaker-locking e VAD para turnos limpos e interrupção. Na demo, a correção falada "às dez da manhã" revisa o mesmo rascunho ao vivo. A tela da pessoa idosa mostra um avatar 3D da assistente que acompanha o nível da voz do agente (renderização local, não track de avatar). O **próprio pitch é narrado pela Lia**: a narração usa Fish Audio TTS — a mesma voz e persona da Lia no WhatsApp — e a sessão real no meio do vídeo roda na edge Agora. Caminho declarado: tentamos gerar os takes com um agente Conversational AI num canal RTC (endpoint `speak`) capturando o áudio do canal, mas a saída ficou degradada (rápida, fina) e foi substituída pela narração Fish Audio. No WhatsApp, a mesma persona usa Whisper + LLM + Fish TTS por HTTP (a edge não disparava turno de forma confiável com áudio push — declarado); a sessão Agora 100% gerenciada segue sendo a demo do app.
 
-**Evidência.** Vídeo narrado (1min53s) mostra a sessão real completa: saudação → pedido → confirmação por voz → correção → confirmação visual → tarefa aceita pelo familiar. Personas Helena, Ana e Pedro são fictícias; dados são sintéticos.
+**Evidência.** O vídeo narrado `carecircle_pitch_lia.mp4` mostra a sessão real completa: saudação → pedido → confirmação por voz → correção → confirmação visual → tarefa aceita pelo familiar. Personas Helena, Ana e Pedro são fictícias; dados são sintéticos.
 
 ## Links
 
 - Repositório: https://github.com/acarloshenrique/unmute-hackathon (público)
 - Demo: https://carecircle.jazzautomations.com.br/demo (complementar — o vídeo é a fonte da banca)
-- Versão entregue: commit `2e60660` (main)
+- Versão entregue: commit `9844109` (main)
 - Vídeo: `carecircle_pitch_lia.mp4` (pitch de negócio narrado pela própria Lia — dor, mercado, gap, consentimento, sessão real, modelo, expansão, moat; `carecircle_demo.mp4`/`carecircle_demo_raw.mp4` = sessão integral)
 - Lia no WhatsApp: número da instância demo `5511974128451` — membros cadastrados conversam por nota de voz
 
@@ -26,7 +26,7 @@ A mesma Lia alcança o **WhatsApp** (canal que o idoso já usa): conversa por no
 
 - Personas fictícias (Helena, Ana, Pedro); nenhum dado real.
 - Voz da "Helena" na gravação é TTS sintético no microfone (declarado); a Lia responde ao vivo via pipeline Agora real.
-- Narração do vídeo: gerada por agente Agora Conversational AI real (`speak` + captura RTC); o segmento de demo usa o áudio original da sessão.
+- Narração do vídeo: Fish Audio TTS — a mesma voz da Lia no WhatsApp. A tentativa por agente Agora Conversational AI (`speak` + captura RTC) saiu degradada (rápida/fina) e foi descartada; o segmento de demo usa o áudio original da sessão Agora.
 - Canal WhatsApp: Evolution API (self-hosted) + Groq Whisper/LLM + Fish Audio TTS — componentes externos declarados; o pipeline Agora gerenciado cobre a sessão do app.
 - Login de demonstração, SQLite local — autenticação real é próximo passo.
 - Experimento separado do lab (não parte do produto): ponte telefone↔RTC via Twilio (`/opt/naima-call`, fora deste repo).
