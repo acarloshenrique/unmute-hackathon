@@ -63,6 +63,128 @@ const taskInput = () => ({
   assignee_id: DEMO.ana,
   idempotency_key: id(),
 });
+describe("Acompanhamento familiar inspirado no ICOPE", () => {
+  it("conta 7 dias civis em São Paulo e exige destinatário nos desfechos", () => {
+    // Ainda é 21/11 em São Paulo. O recorte começa em 15/11 às 03:00 UTC.
+    run(
+      "UPDATE demo_state SET value=? WHERE id='clock'",
+      "2026-11-22T02:30:00.000Z",
+    );
+    const owned = routine();
+    const other = createRoutine(pedro, {
+      title: "Agenda de outro familiar",
+      prompt: "Conversa",
+      local_datetime: "2026-11-22T09:00",
+      idempotency_key: id(),
+    });
+    const addRun = (
+      routineId: string | number | null,
+      at: string,
+      status: string,
+    ) => {
+      const runId = id();
+      run(
+        "INSERT INTO routine_runs(id,routine_id,scheduled_at,status,idempotency_key) VALUES(?,?,?,?,?)",
+        runId,
+        routineId,
+        at,
+        status,
+        id(),
+      );
+      return runId;
+    };
+    const source = (
+      runId: string,
+      at: string,
+      status: string,
+      recipient: string,
+    ) => {
+      const eventId = id();
+      run(
+        "INSERT INTO care_events(id,care_profile_id,routine_run_id,event_type,summary,evidence_type,event_time,visibility_scope,recipient_id,created_at,simulated) VALUES(?,?,?,?,?,?,?,'family',?,?,1)",
+        eventId,
+        DEMO.profile,
+        runId,
+        status === "reported" ? "checkin" : "unanswered",
+        "Teste",
+        status,
+        at,
+        recipient,
+        at,
+      );
+      return eventId;
+    };
+    const boundary = "2026-11-15T03:00:00.000Z";
+    const last = "2026-11-21T18:00:00.000Z";
+    addRun(owned.id, "2026-11-15T02:59:59.999Z", "invited");
+    addRun(owned.id, "2026-11-22T03:00:00.000Z", "invited");
+    const answered = addRun(owned.id, boundary, "answered");
+    source(answered, boundary, "reported", DEMO.ana);
+    source(answered, boundary, "reported", DEMO.ana);
+    const missing = addRun(owned.id, last, "unanswered");
+    const lastId = source(missing, last, "unanswered", DEMO.ana);
+    const privateResult = addRun(
+      owned.id,
+      "2026-11-21T19:00:00.000Z",
+      "answered",
+    );
+    source(privateResult, "2026-11-21T19:00:00.000Z", "reported", DEMO.pedro);
+    addRun(other.id, "2026-11-21T16:00:00.000Z", "invited");
+    expect(snapshot(ana).family_followup).toMatchObject({
+      invited: 2,
+      answered: 1,
+      unanswered: 1,
+      lastContact: { id: lastId, status: "unanswered", simulated: 1 },
+      nextContact: { at: "2026-11-22T19:00:00.000Z" },
+    });
+    expect(snapshot(pedro).family_followup).toBeNull();
+  });
+
+  it("conta só pedidos do destinatário no recorte e respeita revogação", () => {
+    run(
+      "UPDATE demo_state SET value=? WHERE id='clock'",
+      "2026-11-22T18:00:00.000Z",
+    );
+    changeConsent(helena, {
+      scope: "family_updates",
+      recipient_id: DEMO.pedro,
+      granted: true,
+    });
+    for (const [assignee, date, status] of [
+      [DEMO.ana, "2026-11-22T16:00:00.000Z", "pending"],
+      [DEMO.ana, "2026-11-20T16:00:00.000Z", "accepted"],
+      [DEMO.ana, "2026-11-16T02:59:59.999Z", "accepted"],
+      [DEMO.ana, "2026-11-19T16:00:00.000Z", "completed"],
+      [DEMO.pedro, "2026-11-22T16:00:00.000Z", "pending"],
+    ]) {
+      const task = createTask(helena, {
+        ...taskInput(),
+        assignee_id: assignee,
+      });
+      run(
+        "UPDATE tasks SET created_at=?,status=? WHERE id=?",
+        date,
+        status,
+        task.id,
+      );
+    }
+    expect(snapshot(ana).family_followup).toMatchObject({
+      pending: 1,
+      accepted: 1,
+    });
+    expect(snapshot(pedro).family_followup).toMatchObject({
+      pending: 1,
+      accepted: 0,
+    });
+    changeConsent(helena, {
+      scope: "family_updates",
+      recipient_id: DEMO.ana,
+      granted: false,
+    });
+    expect(snapshot(ana).family_followup).toBeNull();
+  });
+});
+
 describe("Tempo e agenda persistente", () => {
   it("converte São Paulo para UTC e rejeita horário impossível", () => {
     expect(at("16:00")).toBe("2026-11-22T19:00:00.000Z");

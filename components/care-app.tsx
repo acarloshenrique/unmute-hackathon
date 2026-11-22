@@ -472,13 +472,6 @@ function Dashboard({
   act: Action;
   schedule: () => void;
 }) {
-  const reported = data.events.filter(
-      (e) => e.evidence_type === "reported",
-    ).length,
-    waiting = data.runs.filter((r) => r.status === "invited").length,
-    pending = data.tasks.filter((t) =>
-      ["pending", "accepted"].includes(t.status),
-    ).length;
   return (
     <>
       <div className="dashboard-grid">
@@ -506,29 +499,9 @@ function Dashboard({
               <small>Dona Helena</small>
             </div>
           </section>
-          <div className="stats-grid">
-            <div className="stat">
-              <span className="stat-icon">
-                <MessageCircle size={19} />
-              </span>
-              <strong>{reported}</strong>
-              <span>Relatos compartilhados</span>
-            </div>
-            <div className="stat">
-              <span className="stat-icon amber">
-                <Clock3 size={19} />
-              </span>
-              <strong>{waiting}</strong>
-              <span>Convites aguardando</span>
-            </div>
-            <div className="stat">
-              <span className="stat-icon teal">
-                <CheckCheck size={19} />
-              </span>
-              <strong>{pending}</strong>
-              <span>Tarefas em aberto</span>
-            </div>
-          </div>
+          {data.actor.role === "relative" && (
+            <FamilyFollowupCard followup={data.family_followup} />
+          )}
           {data.actor.role === "relative" && (
             <FamilyCheckinReportCard report={data.checkin_report} />
           )}
@@ -618,6 +591,99 @@ function Dashboard({
         </aside>
       </div>
     </>
+  );
+}
+function FamilyFollowupCard({
+  followup,
+}: {
+  followup: Data["family_followup"];
+}) {
+  if (!followup) return null;
+  return (
+    <section className="card" aria-labelledby="family-followup-heading">
+      <div className="card-heading">
+        <div>
+          <h2 id="family-followup-heading">Acompanhamento familiar</h2>
+          <p className="fine-print">
+            Últimos 7 dias, incluindo hoje · São Paulo
+          </p>
+        </div>
+        <Link href="/familia/agenda" className="text-link">
+          Ver agenda
+        </Link>
+      </div>
+      <div className="stats-grid">
+        <div className="stat">
+          <span className="stat-icon">
+            <MessageCircle size={19} />
+          </span>
+          <strong>
+            {followup.answered}/{followup.invited}
+          </strong>
+          <span>Respondidos / convites enviados</span>
+        </div>
+        <div className="stat">
+          <span className="stat-icon amber">
+            <Clock3 size={19} />
+          </span>
+          <strong>{followup.unanswered}</strong>
+          <span>Convites sem resposta</span>
+        </div>
+        <div className="stat">
+          <span className="stat-icon teal">
+            <CheckCheck size={19} />
+          </span>
+          <strong>{followup.pending + followup.accepted}</strong>
+          <span>
+            Pedidos abertos criados no período: {followup.pending} pendentes · {followup.accepted}{" "}
+            aceitos
+          </span>
+        </div>
+      </div>
+      <dl className="checkin-report-fields">
+        <div>
+          <dt>Último registro de conversa</dt>
+          <dd>
+            {followup.lastContact ? (
+              <>
+                {displayDate(followup.lastContact.at)} ·{" "}
+                <Badge status={followup.lastContact.status} />{" "}
+                {Boolean(followup.lastContact.simulated) && (
+                  <span className="fixture-label">SIMULAÇÃO</span>
+                )}{" "}
+                <small>
+                  Fonte: registro autorizado ·{" "}
+                  {followup.lastContact.id.slice(0, 8)}
+                </small>
+              </>
+            ) : (
+              "Nenhum registro autorizado no período."
+            )}
+          </dd>
+        </div>
+        <div>
+          <dt>Próxima conversa da sua agenda</dt>
+          <dd>
+            {followup.nextContact
+              ? displayDate(followup.nextContact.at)
+              : "Não agendada."}
+          </dd>
+        </div>
+        <div>
+          <dt>Prioridade da pessoa e plano combinado</dt>
+          <dd>
+            Não registrados. Convites, relatos e pedidos não formam um plano
+            aprovado.
+          </dd>
+        </div>
+      </dl>
+      <p className="fine-print">
+        Inspirado no ICOPE da OMS para acompanhar o que importa à pessoa e
+        combinar próximos contatos. O resumo abaixo mostra um registro, não um
+        plano. Relato ou ausência de resposta não confirma como a pessoa está;
+        este painel não faz avaliação clínica.
+      </p>
+    </section>
   );
 }
 function FamilyCheckinReportCard({
