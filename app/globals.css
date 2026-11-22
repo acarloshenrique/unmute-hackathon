@@ -2072,3 +2072,62 @@ details.card {
 .fasting-dialog h2 { font-size:1.25rem;line-height:1.5; }
 .fasting-dialog .button-row,.fasting-dialog > button { margin-top:12px; }
 .fasting-return { background:#e7efdf; border-color:#afc5a8; }
+
+/* Prontuário do familiar */
+.family-chart, .chart-stack { display:grid; gap:20px; min-width:0; }
+.family-chart :is(p,dd,small),.chart-line strong { overflow-wrap:anywhere; }
+.family-chart h2,.chart-dialog h2 { font-size:clamp(22px,2vw,29px); }
+.family-chart h3,.chart-dialog h3 { font-size:20px; }
+.family-chart h4 { font-size:16px; }
+.chart-tabs { display:flex; gap:6px; flex-wrap:wrap; border-bottom:1px solid var(--line); padding-bottom:12px; }
+.chart-tabs a { display:inline-flex; align-items:center; gap:7px; min-height:42px; padding:7px 13px; border-radius:8px; color:var(--green); font-weight:650; text-decoration:none; }
+.chart-tabs a[aria-current],.chart-tabs a:hover { background:var(--sage); }
+.chart-tabs a[aria-current] { box-shadow:inset 0 -2px var(--green); }
+.chart-hero { display:flex; align-items:center; justify-content:space-between; gap:20px; background:#244d41; color:white; border-radius:var(--radius); padding:clamp(20px,3vw,34px); }
+.chart-hero-label,.chart-icon-text,.chart-shortcut p svg { display:inline-flex; align-items:center; gap:8px; }
+.chart-hero-label { color:#d2e5d6; font-weight:650; font-size:14px; }
+.chart-hero h2 { color:white; font:normal clamp(32px,4vw,48px)/1.15 Georgia,serif; margin:8px 0; }
+.chart-hero p { margin:0; color:#e1ece3; }
+.chart-hero-monogram { flex:none; display:grid; place-items:center; width:72px; height:72px; border:1px solid #7e9b88; outline:1px solid #567b66; outline-offset:6px; border-radius:50%; color:#263f33; background:#e7d4c0; font:36px Georgia,serif; }
+.chart-metrics,.chart-med-grid,.chart-columns,.chart-pair { display:grid; gap:14px; grid-template-columns:repeat(3,minmax(0,1fr)); }
+.chart-metrics a { display:grid; grid-template-rows:auto 1fr auto; align-content:start; gap:7px; padding:17px; background:white; border:1px solid var(--line); border-radius:14px; color:var(--ink); text-decoration:none; }
+.chart-metrics a:hover { border-color:var(--green); }
+.chart-metrics svg { width:19px; color:var(--green); }
+.chart-metrics strong { font-size:24px; }
+.chart-metrics strong small { font-size:13px; font-weight:500; color:var(--muted); }
+.chart-metrics span { font-size:14px; }
+.chart-columns { grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);align-items:start; }
+.chart-med-grid,.chart-pair { grid-template-columns:repeat(2,minmax(0,1fr)); }
+.chart-section-heading,.chart-line,.chart-dialog header,.chart-actions,.chart-prep h4,.stock-box,.chart-shortcut > p { display:flex; align-items:center; gap:12px; }
+.chart-section-heading,.chart-dialog header,.chart-prep h4 { justify-content:space-between; flex-wrap:wrap; }
+.chart-section-heading :is(h2,h3,p),.chart-dialog header h2,.chart-line p { margin:0; }
+.chart-section-heading p { color:var(--muted); margin-top:3px; }
+.chart-facts { margin:10px 0 16px; }
+.chart-facts div,.chart-history-row,.chart-line,.chart-reminder { padding:12px 0; border-bottom:1px solid var(--line); }
+.chart-facts dt,.chart-history-row small,.family-chart small,.chart-shortcut small { color:#53675c; }
+.chart-facts dt { font-size:13px; }.chart-facts dd { margin:3px 0 0; }
+.chart-tag { display:inline-block; border-radius:20px; padding:4px 10px; background:var(--sage); color:#315940; font-size:12px; font-weight:700; }
+.chart-tag.amber { background:#fbebd5; color:#704818; }
+.chart-reminder { display:grid; gap:4px; color:var(--ink); text-decoration:none; }
+.chart-history-row p { margin:6px 0; white-space:pre-line; }
+.chart-line>div { flex:1; min-width:0; }.chart-line time { color:var(--green); font-weight:700; }
+.family-chart .subtle-button { width:auto; max-width:100%; margin-top:0; }
+.chart-line small,.stock-box small,.chart-shortcut small { display:block; font-size:13px; }
+.chart-actions { flex-wrap:wrap; margin-top:15px; }
+.chart-icon-text { flex-wrap:wrap; margin:12px 0 0; }
+.chart-prep { background:var(--ivory); border-radius:12px; padding:14px; margin:16px 0; }.chart-prep h4 {margin:0;}
+.chart-prep .chart-line:last-child,.chart-history-row:last-child { border-bottom:0; }
+.stock-box { border-radius:12px; background:var(--ivory); padding:14px; margin:12px 0; }
+.chart-feedback { background:var(--sage); color:var(--green); padding:10px 14px; border-radius:8px; margin:0; }
+.chart-date,.chart-actions,.chart-shortcut > p { flex-wrap:wrap; }.chart-shortcut > p { margin:10px 0; }
+.chart-date input,.chart-field :is(input,select,textarea) { padding:8px 10px; border-radius:8px; border:1px solid #9daea2; background:white; color:var(--ink); font:inherit; min-height:42px; }
+.chart-dialog { position:fixed; inset:0; margin:auto; border:0; border-radius:16px; color:var(--ink); background:var(--ivory); padding:24px; width:min(520px,94vw); max-height:90dvh; overflow:auto; box-shadow:0 12px 60px #14332640; }
+.chart-dialog::backdrop { background:#14281fc4; }
+.chart-dialog header button { padding:8px; border:0; background:transparent; }
+.chart-dialog form,.chart-dialog fieldset,.chart-field { display:grid; gap:7px; }.chart-dialog form {gap:14px;margin-top:16px;}
+.chart-dialog fieldset { border:1px solid var(--line); padding:12px; min-width:0; border-radius:9px; }
+.chart-field { font-size:14px; font-weight:600; align-content:start; }.chart-field :is(input,textarea,select) {width:100%; min-width:0; font-weight:400;}
+.chart-field textarea { min-height:62px; resize:vertical; }.chart-dialog footer {display:flex; gap:8px; justify-content:flex-end;}
+.chart-form-context,.chart-empty { background:var(--ivory); padding:12px; border-radius:8px; margin:8px 0; }
+@media(max-width:1000px){.chart-columns{grid-template-columns:1fr;}}
+@media(max-width:650px){.chart-metrics {gap:6px;}.chart-metrics a{padding:9px;}.chart-metrics strong small{display:block;}.chart-metrics span{font-size:12px;}.chart-hero-monogram{width:50px;height:50px;}.chart-med-grid,.chart-pair{grid-template-columns:1fr;}.chart-tabs{gap:2px;}.chart-tabs a{padding:7px 8px;font-size:13px;}.chart-line{flex-wrap:wrap;}.chart-dialog{padding:16px;}}

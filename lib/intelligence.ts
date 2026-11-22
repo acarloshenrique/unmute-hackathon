@@ -1,3 +1,5 @@
+import { chartAccess } from "./chart";
+import { chartAnswer, chartTopic, chartTopics } from "./chart-answer";
 import OpenAI from "openai";
 import type {
   ChatCompletionMessageParam,
@@ -18,6 +20,10 @@ import {
 import { formatTime } from "./time";
 const uuid = z.string().uuid();
 const schemas = {
+  get_family_chart: z.object({
+    care_profile_id: uuid,
+    topic: z.enum(chartTopics),
+  }),
   get_daily_summary: z.object({
     care_profile_id: uuid,
     date: z.string().optional(),
@@ -46,6 +52,8 @@ const schemas = {
   get_routine_status: z.object({ routine_id: uuid }),
 };
 const descriptions: Record<keyof typeof schemas, string> = {
+  get_family_chart:
+    "Consulta objetivo familiar, relatos do cotidiano, estoque, tomadas, agenda e preparo no prontuário autorizado do familiar.",
   get_daily_summary: "Consulta resumo autorizado, com fontes e horários.",
   get_recent_events: "Consulta somente eventos autorizados.",
   get_pending_tasks: "Consulta tarefas pendentes autorizadas.",
@@ -91,6 +99,8 @@ export function executeTool(
     .update(JSON.stringify([actor.id, sessionId, name, d]))
     .digest("hex");
   switch (name) {
+    case "get_family_chart":
+      return chartAnswer(actor, d.topic as (typeof chartTopics)[number]);
     case "get_daily_summary":
       return summary(actor, String(p.id), d.date as string | undefined);
     case "get_recent_events":
@@ -196,7 +206,10 @@ export async function voiceReply(
       .create({
         model: process.env.OPENAI_MODEL || "gpt-4o-mini",
         messages: context,
-        tools,
+        tools: tools.filter(
+          (t) =>
+            t.type === "function" && t.function.name !== "get_family_chart",
+        ),
         parallel_tool_calls: false,
         max_completion_tokens: 450,
         temperature: 0.3,
@@ -252,6 +265,8 @@ function apiFailure(error: unknown): DomainError {
   );
 }
 export function recordAnswer(actor: Actor, question: string) {
+  const topic = chartTopic(question);
+  if (topic && actor.role === "relative") return chartAnswer(actor, topic);
   if (/agend|às?\s*\d|marcar|conversa.*\d/i.test(question))
     return {
       answer:
@@ -291,10 +306,17 @@ export function recordAnswer(actor: Actor, question: string) {
 }
 export async function copilot(actor: Actor, question: string) {
   const p = profileFor(actor);
-  const ground = recordAnswer(actor, question);
+  const ground = () => recordAnswer(actor, question);
+  const topic = chartTopic(question);
+  if (topic && !chartAccess(String(p.id), actor.id))
+    throw new DomainError(
+      "FORBIDDEN",
+      "O prontuário precisa de autorização da pessoa acompanhada.",
+      403,
+    );
   if (!process.env.OPENAI_API_KEY)
     return {
-      ...ground,
+      ...ground(),
       mode: "records",
       notice: "Consulta direta aos registros; IA indisponível.",
     };
@@ -306,7 +328,7 @@ export async function copilot(actor: Actor, question: string) {
       messages: [
         {
           role: "system",
-          content: `Você roteia consultas de familiares em pt-BR. Use uma ferramenta. Nunca invente fatos. Para agendar, use schedule_checkin e retorne proposta para confirmação. Perfil ${p.id}. Data atual São Paulo: ${formatTime(new Date().toISOString())}. Não envie notificações nem proponha tarefas de Helena. Escolha get_pending_tasks quando perguntarem sobre tarefas. get_daily_summary para o dia, get_recent_events para última conversa.`,
+          content: `Você roteia consultas de familiares em pt-BR. Use uma ferramenta. Nunca invente fatos. Para agendar, use schedule_checkin e retorne proposta para confirmação. Perfil ${p.id}. Data atual São Paulo: ${formatTime(new Date().toISOString())}. Não envie notificações nem proponha tarefas de Helena. Use get_family_chart para o objetivo familiar, relatos do cotidiano, estoque, tomadas, exames, consultas médicas e preparos. Leia somente registros. Nunca proponha doses nem preparo clínico. Escolha get_pending_tasks quando perguntarem sobre tarefas. get_daily_summary para o dia, get_recent_events para última conversa.`,
         },
         { role: "user", content: question },
       ],
@@ -314,6 +336,9 @@ export async function copilot(actor: Actor, question: string) {
         (t) =>
           t.type === "function" &&
           [
+            ...(chartAccess(String(p.id), actor.id)
+              ? ["get_family_chart"]
+              : []),
             "get_daily_summary",
             "get_recent_events",
             "get_pending_tasks",
@@ -321,7 +346,9 @@ export async function copilot(actor: Actor, question: string) {
             "get_routine_status",
           ].includes(t.function.name),
       ),
-      tool_choice: "required",
+      tool_choice: topic
+        ? { type: "function", function: { name: "get_family_chart" } }
+        : "required",
       parallel_tool_calls: false,
       max_completion_tokens: 300,
     });
@@ -335,19 +362,22 @@ export async function copilot(actor: Actor, question: string) {
       { code: failure.code },
     );
     return {
-      ...ground,
+      ...ground(),
       mode: "records",
       notice:
         "IA indisponível. Exibindo uma consulta direta aos registros autorizados.",
     };
   }
   const call = response.choices[0]?.message.tool_calls?.[0];
-  if (!call || call.type !== "function") return { ...ground, mode: "records" };
+  if (!call || call.type !== "function")
+    return { ...ground(), mode: "records" };
   const result = executeTool(
     actor,
     call.function.name,
     JSON.parse(call.function.arguments),
   ) as Record<string, unknown>;
+  if (call.function.name === "get_family_chart")
+    return { ...(result as ReturnType<typeof chartAnswer>), mode: "ai_tools" };
   if (call.function.name === "schedule_checkin")
     return {
       answer: "Revise o horário e confirme o agendamento abaixo.",

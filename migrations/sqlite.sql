@@ -36,3 +36,52 @@ CREATE TABLE IF NOT EXISTS fasting_calls(
   sid TEXT UNIQUE, started INTEGER NOT NULL,
   state TEXT NOT NULL CHECK(state IN ('waiting','yes','no','unsure','unanswered'))
 );
+
+CREATE TABLE IF NOT EXISTS record_access (
+  profile_id TEXT NOT NULL REFERENCES care_profiles ON DELETE CASCADE,
+  member_id TEXT NOT NULL REFERENCES members,
+  PRIMARY KEY(profile_id, member_id)
+);
+CREATE TABLE IF NOT EXISTS family_charts (
+  profile_id TEXT PRIMARY KEY REFERENCES care_profiles ON DELETE CASCADE,
+  allergies TEXT NOT NULL, conditions TEXT NOT NULL, preferences TEXT NOT NULL,
+  reference TEXT NOT NULL, source TEXT NOT NULL, revision INTEGER NOT NULL
+);
+CREATE TABLE IF NOT EXISTS chart_medicines (
+  id TEXT PRIMARY KEY, profile_id TEXT NOT NULL REFERENCES care_profiles ON DELETE CASCADE,
+  name TEXT NOT NULL, unit TEXT NOT NULL, stock REAL NOT NULL
+);
+CREATE INDEX IF NOT EXISTS chart_medicine_profile ON chart_medicines(profile_id);
+CREATE TABLE IF NOT EXISTS chart_regimens (
+  id TEXT PRIMARY KEY, medicine_id TEXT NOT NULL REFERENCES chart_medicines ON DELETE CASCADE,
+  dose TEXT NOT NULL, quantity REAL NOT NULL, times TEXT NOT NULL, source TEXT NOT NULL,
+  starts_at TEXT NOT NULL, ends_at TEXT
+);
+CREATE UNIQUE INDEX IF NOT EXISTS chart_current_regimen ON chart_regimens(medicine_id) WHERE ends_at IS NULL;
+CREATE TABLE IF NOT EXISTS chart_intakes (
+  regimen_id TEXT NOT NULL REFERENCES chart_regimens ON DELETE CASCADE, scheduled_at TEXT NOT NULL,
+  status TEXT NOT NULL CHECK(status IN ('taken','skipped')), reporter TEXT NOT NULL,
+  recorded_at TEXT NOT NULL, version_id TEXT NOT NULL, PRIMARY KEY(regimen_id, scheduled_at)
+);
+CREATE TABLE IF NOT EXISTS chart_visits (
+  id TEXT PRIMARY KEY, profile_id TEXT NOT NULL REFERENCES care_profiles ON DELETE CASCADE,
+  kind TEXT NOT NULL, title TEXT NOT NULL, scheduled_at TEXT NOT NULL, location TEXT NOT NULL,
+  reminder_at TEXT NOT NULL, source TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'scheduled'
+);
+CREATE INDEX IF NOT EXISTS chart_visit_profile ON chart_visits(profile_id, scheduled_at);
+CREATE TABLE IF NOT EXISTS chart_prep (
+  id TEXT PRIMARY KEY, visit_id TEXT NOT NULL REFERENCES chart_visits ON DELETE CASCADE,
+  instruction TEXT NOT NULL, due_at TEXT NOT NULL, completed_at TEXT
+);
+CREATE TABLE IF NOT EXISTS chart_history (
+  request_id TEXT PRIMARY KEY, profile_id TEXT NOT NULL REFERENCES care_profiles ON DELETE CASCADE,
+  actor_id TEXT NOT NULL REFERENCES members, kind TEXT NOT NULL, at TEXT NOT NULL,
+  detail TEXT NOT NULL, fingerprint TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS chart_history_profile ON chart_history(profile_id, at);
+
+CREATE TABLE IF NOT EXISTS chart_family_plans (
+  profile_id TEXT PRIMARY KEY REFERENCES care_profiles ON DELETE CASCADE,
+  goal TEXT NOT NULL, next_step TEXT NOT NULL, helper TEXT NOT NULL,
+  review_on TEXT NOT NULL, stage TEXT NOT NULL, version_id TEXT NOT NULL
+);

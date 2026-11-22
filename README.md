@@ -12,6 +12,21 @@ Para testes autorizados, habilite `CARECIRCLE_OUTREACH_ENABLED=true` e defina `C
 
 **Painel da família** abre `/familia` com o perfil fictício de Ana. **Controles da apresentação** leva à sala de testes em `/demo/controle`. Os quatro exemplos de contato usam falas fictícias e o envio de um exemplo não cria tarefas nem registros de saúde.
 
+## Prontuário familiar
+
+Entre como **Ana** na demonstração e abra **Prontuário familiar** no menu ou em `/familia/prontuario`. Helena fictícia autorizou Ana a consultar e atualizar a ficha. Em `/idoso#privacidade`, Helena pode conceder ou revogar esse acesso por familiar.
+
+- **Resumo e histórico** reúnem a ficha, a fonte das informações, relatos compartilhados e registros com data e autoria.
+- **Plano e cotidiano** dá destaque ao objetivo nas palavras da pessoa, ao que foi combinado, a quem ajuda e à data de revisão. O painel lembra a família quando chega o dia da revisão. Os relatos opcionais guardam o assunto, a data da observação, a origem e quem registrou. Incluem memória, mobilidade, vitalidade e alimentação, visão, audição, bem-estar emocional, apoio social, apoio a quem cuida e continência urinária.
+- **Medicamentos** aceita planos diários com um ou mais horários. Uma tomada relatada desconta a quantidade registrada para aquele horário. Uma correção ajusta o saldo e preserva o relato original no histórico. O familiar pode lançar reposições, copiar uma orientação médica atualizada ou encerrar a prescrição. A revisão passa a valer ao salvar.
+- **Agenda e preparo** reúne consultas, exames e procedimentos. Cada etapa transcrita da orientação do serviço tem horário e confirmação próprios. Os lembretes aparecem no painel aberto. O arquivo de calendário do atendimento inclui alarmes para o compromisso e os preparos pendentes. A importação e as notificações dependem do calendário escolhido. Em **Resumo para a consulta**, o familiar pode abrir o objetivo atual, os medicamentos vigentes com suas fontes e as três observações mais recentes.
+- **Care Copilot** consulta os registros autorizados de estoque, tomadas e agenda. A chave opcional do provedor permite interpretar perguntas por ferramentas. Na ausência do provedor, a consulta direta identifica o modo usado. Os lançamentos e as alterações de prescrição dependem da ação do familiar.
+- O prontuário usa o SQLite da aplicação e é independente da lista de medicamentos da ponte de WhatsApp. A demonstração utiliza exclusivamente dados fictícios.
+
+O manual ICOPE, 2ª edição, fundamenta as escolhas sobre objetivos e seguimento (capítulo 3), revisão de medicamentos com a equipe (seção 4.2.4), capacidades no cotidiano (capítulos 5 a 10), apoio social, apoio ao cuidador e continência (capítulos 11 a 13). As telas organizam conversas e registros familiares. A avaliação clínica cabe à equipe de saúde. [Manual da OMS](https://www.who.int/publications/i/item/9789240103726).
+
+Validação local feita com Node 24 e SQLite. O comando `npm run check` passou com 77 testes unitários e de domínio. Os 9 cenários Playwright passaram em Chromium na aplicação compilada, incluindo objetivo, relato do cotidiano, lembrete de revisão, resumo para a consulta e exportação do calendário. Uma cópia da base anterior também recebeu o plano e manteve os medicamentos cadastrados. A consulta direta aos registros foi testada sem credencial do provedor de IA.
+
 ## Escolher cuidadora virtual
 
 No painel `/familia`, o familiar autorizado escolhe **Lia · Acolhedora** (padrão), **Clara · Direta** ou **Rosa · Paciente** para a pessoa acompanhada. A escolha é salva no servidor e persiste após recarregar. Requer vínculo com a família e autorização `family_updates` vigente daquela pessoa; a preferência nunca concede ou modifica consentimentos.

@@ -1,3 +1,4 @@
+import { chartAccess } from "./chart";
 import { z } from "zod";
 import { id, now, one, rows, run, transaction, audit, type Row } from "./db";
 import {
@@ -944,6 +945,15 @@ export function snapshot(actor: Actor) {
   return {
     actor,
     profile: p,
+    can_manage_chart:
+      actor.role === "relative" && chartAccess(String(p.id), actor.id),
+    chart_readers:
+      actor.role === "elder"
+        ? rows<{ member_id: string }>(
+            "SELECT member_id FROM record_access WHERE profile_id=?",
+            p.id,
+          ).map((r) => r.member_id)
+        : [],
     caregiver: getCaregiver(String(p.id)),
     can_choose_caregiver:
       actor.role === "relative" &&
