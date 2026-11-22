@@ -813,6 +813,19 @@ function Channels() {
         >
           {busy === "call" ? "Ligando…" : "Ligar pro Carlos"}
         </button>
+        <button
+          className="button button-small"
+          disabled={!!busy}
+          onClick={() =>
+            void go(
+              "whatsapp",
+              "5511951684260",
+              "Oi Carlos, aqui é a Lia do CareCircle mandando um áudio de verdade pelo WhatsApp — isso é a demo ao vivo.",
+            )
+          }
+        >
+          {busy === "whatsapp" ? "Enviando…" : "Zap pro Carlos"}
+        </button>
       </div>
       {note && <p className="callout">{note}</p>}
       {err && (
