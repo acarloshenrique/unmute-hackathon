@@ -32,6 +32,38 @@ export const demoScenarios = [
 
 export type DemoScenarioId = (typeof demoScenarios)[number]["id"];
 
+// Nas ligações o cenário vai no mission (prompt) + saudação natural da Lia.
+// A `message` acima é roteiro para quem encena no app — nunca deve ser falada.
+export const phoneScenarios: Record<
+  DemoScenarioId,
+  { greeting: string; mission: string }
+> = {
+  feira: {
+    greeting:
+      "Oi! Aqui é a Lia, do círculo de cuidado. A Ana me contou que você quer ir à feira sábado com o Pedro — que horário fica bom pra vocês?",
+    mission:
+      "Objetivo: combinar a ida à feira de sábado com a companhia do Pedro. Descubra o horário que a pessoa prefere, repita para confirmar (ex.: 'então fechamos nove da manhã?'), aceite correções no meio e repita a versão nova se perguntarem o que você entendeu. Feche dizendo que vai avisar a Ana no aplicativo. Uma pergunta por vez, frases curtas.",
+  },
+  remedio: {
+    greeting:
+      "Oi! Aqui é a Lia, do círculo de cuidado. Você tem exame amanhã em jejum, né? Me conta o que você quer saber que eu anoto pra Ana.",
+    mission:
+      "A pessoa vai perguntar se pode tomar café de manhã estando em jejum para exame. Você NUNCA decide nada clínico: anote a dúvida, diga que vai confirmar com a Ana e que retorna com a resposta. Se ela só responder sim, não ou não sei, conduza com gentileza. Uma pergunta por vez.",
+  },
+  consulta: {
+    greeting:
+      "Oi! Aqui é a Lia, do círculo de cuidado. A Ana me falou da sua consulta de sexta de manhã — quer que eu veja quem pode ir junto com você?",
+    mission:
+      "Objetivo: descobrir quem acompanha a pessoa na consulta de sexta de manhã. Pergunte quem ela prefere (Ana, Pedro ou outra pessoa), confirme a escolha repetindo, e feche dizendo que avisa a Ana no aplicativo. Uma pergunta por vez, frases curtas.",
+  },
+  almoco: {
+    greeting:
+      "Oi! Aqui é a Lia, do círculo de cuidado, ligando pra saber como foi o seu almoço hoje. Me conta?",
+    mission:
+      "Conversa leve sobre o almoço: escute com interesse, um tema por vez. Se a pessoa quiser compartilhar algo com a família, ofereça repassar o recado pra Ana. Sem pressa, frases curtas.",
+  },
+};
+
 export function demoPhone(raw: string): string | null {
   const entry = raw.trim();
   if (!/^\+?[\d\s().-]+$/.test(entry)) return null;

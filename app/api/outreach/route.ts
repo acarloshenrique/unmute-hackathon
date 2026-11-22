@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { z } from "zod";
 import { actorFromRequest, checkOrigin } from "@/lib/auth";
-import { demoPhone, demoScenarios } from "@/lib/demo-scenarios";
+import { demoPhone, demoScenarios, phoneScenarios } from "@/lib/demo-scenarios";
 import { body, failure, throttle } from "@/lib/http";
 import {
   allowedOutreachNumbers,
@@ -125,12 +125,16 @@ export async function POST(req: Request) {
         },
         { status: 503 },
       );
-    const qs = new URLSearchParams({
-      to: num,
-      persona: "lia",
-      say: message,
-      greeting: demo ? greeting : "Oi, aqui é a Lia do CareCircle.",
-    });
+    const qs = new URLSearchParams({ to: num, persona: "lia" });
+    if (demo) {
+      const scene = phoneScenarios[d.scenario as keyof typeof phoneScenarios];
+      qs.set("say", "");
+      qs.set("greeting", scene.greeting);
+      qs.set("mission", scene.mission);
+    } else {
+      qs.set("say", message);
+      qs.set("greeting", "Oi, aqui é a Lia do CareCircle.");
+    }
     const r = await fetch(`http://127.0.0.1:8765/dial?${qs}`, {
       method: "POST",
       headers: { "X-Call-Key": key },
