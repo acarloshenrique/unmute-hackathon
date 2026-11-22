@@ -126,7 +126,7 @@ export async function startVoice(actor: Actor, invitationId?: string, demoScenar
       channel,
       agentUid: String(AGENT_UID),
       remoteUids: [String(uid)],
-      idleTimeout: 30,
+      idleTimeout: 120,
       expiresIn: ExpiresIn.minutes(15),
       debug: false,
     });
