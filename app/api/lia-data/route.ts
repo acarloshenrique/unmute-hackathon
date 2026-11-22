@@ -73,18 +73,31 @@ export async function POST(req: Request) {
   try {
     actorFromRequest(req);
     const d = z
-      .object({
-        action: z.enum(["tomei", "del"]),
-        name: z.string().min(1).max(80),
-      })
+      .discriminatedUnion("action", [
+        z.object({
+          action: z.enum(["tomei", "del"]),
+          name: z.string().min(1).max(80),
+        }),
+        z.object({
+          action: z.literal("marca"),
+          contact: z.string().min(1).max(80),
+          request: z.string().min(1).max(500),
+        }),
+      ])
       .parse(await body(req));
+    const marca = d.action === "marca";
     let r: Response;
     try {
-      r = await fetch(`${LIA}/meds/action`, {
+      r = await fetch(`${LIA}${marca ? "/agenda/action" : "/meds/action"}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: d.action, name: d.name }),
-        signal: AbortSignal.timeout(3000),
+        body: JSON.stringify(
+          marca
+            ? { action: "marca", contact: d.contact, request: d.request }
+            : { action: d.action, name: d.name },
+        ),
+        // 'marca' gera áudio TTS antes de responder — dá mais folga.
+        signal: AbortSignal.timeout(marca ? 20000 : 3000),
       });
     } catch {
       return Response.json(
@@ -101,7 +114,9 @@ export async function POST(req: Request) {
           error: "LIA_ACTION",
           message:
             r.status === 404
-              ? "Remédio não encontrado na lista."
+              ? marca
+                ? "Contato não está na agenda da Lia."
+                : "Remédio não encontrado na lista."
               : "Não foi possível concluir com a Lia.",
         },
         { status: r.status === 404 ? 404 : 502 },

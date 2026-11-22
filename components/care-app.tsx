@@ -799,6 +799,10 @@ const PAPEL_LABEL: Record<string, string> = {
 };
 function AgendaCard() {
   const [data, setData] = useState<LiaData | null>(null),
+    [pedirFor, setPedirFor] = useState(""),
+    [pedido, setPedido] = useState(""),
+    [busy, setBusy] = useState(""),
+    [note, setNote] = useState(""),
     [err, setErr] = useState("");
   useEffect(() => {
     api<LiaData>("/api/lia-data")
@@ -807,6 +811,25 @@ function AgendaCard() {
         setErr(e instanceof Error ? e.message : "Indisponível agora."),
       );
   }, []);
+  async function pedir(c: LiaContact) {
+    setBusy(c.nome);
+    setNote("");
+    setErr("");
+    try {
+      const j = await api<{ result?: string }>("/api/lia-data", {
+        action: "marca",
+        contact: c.nome,
+        request: pedido.trim(),
+      });
+      setNote(j.result || "Lia enviou o pedido em áudio.");
+      setPedirFor("");
+      setPedido("");
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : "Não foi possível pedir agora.");
+    } finally {
+      setBusy("");
+    }
+  }
   const byKind: Record<string, LiaContact[]> = {};
   for (const c of data?.contacts ?? [])
     (byKind[c.papel || "outro"] ??= []).push(c);
@@ -848,9 +871,49 @@ function AgendaCard() {
                   {(PAPEL_LABEL[k] || k).toUpperCase()}
                 </span>
                 {byKind[k].map((c) => (
-                  <div className="readiness" key={`${c.papel}-${c.nome}`}>
-                    <span>{c.nome}</span>
-                    <small>{c.number}</small>
+                  <div key={`${c.papel}-${c.nome}`}>
+                    <div className="readiness">
+                      <span>
+                        {c.nome} <small>{c.number}</small>
+                      </span>
+                      <button
+                        className="text-button"
+                        onClick={() => {
+                          setPedirFor(c.nome);
+                          setPedido("");
+                          setNote("");
+                          setErr("");
+                        }}
+                      >
+                        Pedir agendamento
+                      </button>
+                    </div>
+                    {pedirFor === c.nome && (
+                      <div className="agenda-ask">
+                        <textarea
+                          rows={2}
+                          maxLength={500}
+                          value={pedido}
+                          onChange={(e) => setPedido(e.target.value)}
+                          placeholder="Ex.: consulta de rotina sexta de manhã"
+                        />
+                        <div className="button-row">
+                          <button
+                            className="button button-small"
+                            disabled={!!busy || !pedido.trim()}
+                            onClick={() => void pedir(c)}
+                          >
+                            {busy === c.nome ? "Enviando…" : "Confirmar"}
+                          </button>
+                          <button
+                            className="text-button"
+                            onClick={() => setPedirFor("")}
+                          >
+                            Cancelar
+                          </button>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
@@ -858,6 +921,7 @@ function AgendaCard() {
           )}
         </>
       )}
+      {note && <p className="callout">{note}</p>}
       {err && (
         <p role="alert" className="form-error">
           {err}
