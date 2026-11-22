@@ -1,0 +1,232 @@
+.page {
+  --bg: #0c1411;
+  --panel: #12201a;
+  --line: #1e3529;
+  --ink: #dce8de;
+  --muted: #7d9a88;
+  --accent: #58d6a0;
+  --amber: #e8c26a;
+  min-height: 100vh;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: "SF Mono", "Cascadia Code", Consolas, monospace;
+  padding: 0 0 28px;
+}
+.top {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 14px 24px;
+  border-bottom: 1px solid var(--line);
+}
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 700;
+  font-size: 1.05rem;
+  letter-spacing: 0.02em;
+}
+.dim {
+  color: var(--muted);
+}
+.pulse {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-left: auto;
+  font-size: 0.72rem;
+  letter-spacing: 0.14em;
+  color: var(--muted);
+  text-transform: uppercase;
+}
+.pulse.live {
+  color: var(--accent);
+}
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--muted);
+}
+.live .dot {
+  background: var(--accent);
+  box-shadow: 0 0 0 0 rgba(88, 214, 160, 0.7);
+  animation: ping 1.4s infinite;
+}
+@keyframes ping {
+  70% {
+    box-shadow: 0 0 0 8px rgba(88, 214, 160, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(88, 214, 160, 0);
+  }
+}
+.clock {
+  font-size: 0.8rem;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 10px;
+  padding: 16px 24px;
+}
+.card {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 12px 14px;
+}
+.cardLabel {
+  font-size: 0.66rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+.cardValue {
+  font-size: 1.9rem;
+  font-weight: 700;
+  color: var(--accent);
+  line-height: 1.15;
+  font-variant-numeric: tabular-nums;
+}
+.cardSub {
+  font-size: 0.68rem;
+  color: var(--muted);
+}
+.grid {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr;
+  gap: 12px;
+  padding: 0 24px;
+}
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 14px 16px;
+  min-width: 0;
+}
+.panel h2 {
+  margin: 0 0 10px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.side {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.feed,
+.voiceList,
+.callList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+.feed {
+  max-height: 62vh;
+  overflow-y: auto;
+  gap: 2px;
+}
+.feedItem {
+  display: flex;
+  gap: 10px;
+  padding: 7px 6px;
+  border-radius: 7px;
+  font-size: 0.8rem;
+}
+.feedItem:hover {
+  background: #16281f;
+}
+.feedIcon {
+  color: var(--accent);
+  padding-top: 2px;
+  flex-shrink: 0;
+}
+.feedTitle {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-weight: 600;
+}
+.feedTitle time {
+  color: var(--muted);
+  font-weight: 400;
+  font-size: 0.72rem;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.feedDetail {
+  color: var(--muted);
+  font-size: 0.74rem;
+}
+.voiceList {
+  gap: 4px;
+  font-size: 0.78rem;
+}
+.voiceList li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+}
+.voiceList b {
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+.voiceList i {
+  font-style: normal;
+  font-size: 0.66rem;
+  color: var(--muted);
+  margin-left: auto;
+}
+.voiceList .liveTag {
+  color: var(--accent);
+}
+.callList {
+  max-height: 38vh;
+  overflow-y: auto;
+  gap: 8px;
+}
+.call {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 8px 10px;
+}
+.callHead {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--amber);
+  font-size: 0.72rem;
+  margin-bottom: 4px;
+}
+.callLine {
+  margin: 2px 0;
+  font-size: 0.74rem;
+  color: var(--ink);
+  line-height: 1.45;
+}
+.empty {
+  color: var(--muted);
+  font-size: 0.78rem;
+  padding: 10px 4px;
+}
+.foot {
+  padding: 18px 24px 0;
+  font-size: 0.68rem;
+  color: var(--muted);
+}
+@media (max-width: 860px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+}
