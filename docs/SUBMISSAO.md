@@ -17,9 +17,9 @@ A mesma Lia alcança o **WhatsApp** (canal que o idoso já usa): conversa por no
 ## Links
 
 - Repositório: https://github.com/acarloshenrique/unmute-hackathon (público)
-- Demo: https://demo-hermes.taild017e2.ts.net:8443/demo (complementar — o vídeo é a fonte da banca)
-- Versão entregue: commit `2a71194` (main)
-- Vídeo: `carecircle_demo.mp4` (pitch narrado pela própria Lia + sessão real; `carecircle_demo_raw.mp4` = sessão integral)
+- Demo: https://carecircle.jazzautomations.com.br/demo (complementar — o vídeo é a fonte da banca)
+- Versão entregue: commit `2e60660` (main)
+- Vídeo: `carecircle_pitch_lia.mp4` (pitch de negócio narrado pela própria Lia — dor, mercado, gap, consentimento, sessão real, modelo, expansão, moat; `carecircle_demo.mp4`/`carecircle_demo_raw.mp4` = sessão integral)
 - Lia no WhatsApp: número da instância demo `5511974128451` — membros cadastrados conversam por nota de voz
 
 ## Componentes preexistentes e simulações
