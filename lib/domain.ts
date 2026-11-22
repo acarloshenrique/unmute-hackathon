@@ -14,6 +14,7 @@ import {
   type CaregiverId,
 } from "./caregivers";
 import { familyCheckinReport } from "./checkin-report";
+import { familyFollowup } from "./family-followup";
 import { formatTime, isQuiet, localToUtc, nextDaily, ZONE } from "./time";
 const uuid = z.string().uuid();
 const title = z.string().trim().min(1).max(160);
@@ -941,6 +942,8 @@ export function snapshot(actor: Actor) {
   const p = profileFor(actor);
   const familyConsent =
     actor.role === "elder" || consent(String(p.id), "family_updates", actor.id);
+  const tasks = pendingTasks(actor, undefined, true);
+  const demoTime = process.env.CARECIRCLE_DEMO === "true" ? demoClock() : null;
   return {
     actor,
     profile: p,
@@ -950,7 +953,8 @@ export function snapshot(actor: Actor) {
       !!consent(String(p.id), "family_updates", actor.id),
     events: visibleEvents(actor),
     checkin_report: familyCheckinReport(actor, String(p.id)),
-    tasks: pendingTasks(actor, undefined, true),
+    family_followup: familyFollowup(actor, demoTime ?? now(), tasks),
+    tasks,
     routines: rows(
       "SELECT * FROM routines WHERE care_profile_id=? ORDER BY next_run_at",
       p.id,
@@ -991,7 +995,7 @@ export function snapshot(actor: Actor) {
       actor.family_id,
     ),
     demo: process.env.CARECIRCLE_DEMO === "true",
-    demo_clock: process.env.CARECIRCLE_DEMO === "true" ? demoClock() : null,
+    demo_clock: demoTime,
     agora_configured: !!(
       process.env.NEXT_PUBLIC_AGORA_APP_ID &&
       process.env.NEXT_AGORA_APP_CERTIFICATE &&
