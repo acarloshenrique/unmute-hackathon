@@ -526,6 +526,9 @@ function Dashboard({
               <span>Tarefas em aberto</span>
             </div>
           </div>
+          {data.actor.role === "relative" && (
+            <FamilyCheckinReportCard report={data.checkin_report} />
+          )}
           <section className="card timeline-card">
             <div className="card-heading">
               <div>
@@ -609,6 +612,78 @@ function Dashboard({
         </aside>
       </div>
     </>
+  );
+}
+function FamilyCheckinReportCard({
+  report,
+}: {
+  report: Data["checkin_report"];
+}) {
+  return (
+    <section className="card" aria-labelledby="family-checkin-report-heading">
+      <div className="card-heading">
+        <div>
+          <span className="eyebrow">ACOMPANHAMENTO FAMILIAR</span>
+          <h2 id="family-checkin-report-heading">Resumo de acompanhamento</h2>
+        </div>
+        {report?.source.simulated && (
+          <span className="fixture-label">SIMULAÇÃO</span>
+        )}
+      </div>
+      {!report ? (
+        <Empty text="Não há registros autorizados para resumir. Isso não informa como a pessoa está." />
+      ) : (
+        <>
+          <dl className="checkin-report-fields">
+            <div>
+              <dt>Situação</dt>
+              <dd>
+                {report.situation} · {displayDate(report.source.at)}
+              </dd>
+            </div>
+            {report.context && (
+              <div>
+                <dt>Contexto</dt>
+                <dd>Convite na agenda: {report.context}</dd>
+              </div>
+            )}
+            <div>
+              <dt>O que foi relatado ou registrado</dt>
+              <dd>
+                {report.observation ?? "Não há relato para este registro."}
+              </dd>
+            </div>
+            <div>
+              <dt>O que ficou sem confirmação</dt>
+              <dd>{report.verification}</dd>
+            </div>
+            <div>
+              <dt>Próximo passo</dt>
+              <dd>
+                {report.nextStep ? (
+                  <>
+                    <span>
+                      {report.nextStep.title} · {report.nextStep.responsible}
+                    </span>{" "}
+                    <span className={`status status-${report.nextStep.status}`}>
+                      Status:{" "}
+                      {statusLabel[report.nextStep.status] ||
+                        report.nextStep.status}
+                    </span>
+                  </>
+                ) : (
+                  "Nenhuma tarefa vinculada a este registro."
+                )}
+              </dd>
+            </div>
+          </dl>
+          <p className="fine-print">
+            Fonte: registro autorizado · {report.source.id.slice(0, 8)}. Este
+            resumo não avalia a saúde nem altera o plano de acompanhamento.
+          </p>
+        </>
+      )}
+    </section>
   );
 }
 function TaskList({ data, act }: { data: Data; act: Action }) {

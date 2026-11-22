@@ -2048,3 +2048,18 @@ details.card {
   font-size: 1.15rem;
   margin: 0 0 8px;
 }
+
+.checkin-report-fields {
+  display: grid;
+  gap: 0.85rem;
+  margin: 1rem 0;
+}
+
+.checkin-report-fields dt {
+  font-weight: 700;
+}
+
+.checkin-report-fields dd {
+  margin-inline-start: 0;
+  overflow-wrap: anywhere;
+}
