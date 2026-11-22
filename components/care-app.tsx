@@ -9,6 +9,7 @@ import {
   CheckCheck,
   Clock3,
   Heart,
+  HeartHandshake,
   Leaf,
   LoaderCircle,
   MessageCircle,
@@ -562,6 +563,7 @@ function Dashboard({
           {data.actor.role === "relative" && (
             <FamilyCheckinReportCard report={data.checkin_report} />
           )}
+          {data.actor.role === "relative" && <IcopeCard />}
           <section className="card timeline-card">
             <div className="card-heading">
               <div>
@@ -818,6 +820,49 @@ function Channels() {
           {err}
         </p>
       )}
+    </section>
+  );
+}
+const ICOPE_DOMAINS = [
+  { name: "Memória e orientação", hint: "esquecimentos, confusão no dia a dia" },
+  { name: "Locomoção", hint: "quedas, cansaço ao andar, medo de cair" },
+  { name: "Alimentação", hint: "apetite, refeições, perda de peso" },
+  { name: "Visão", hint: "ler, reconhecer pessoas e objetos" },
+  { name: "Audição", hint: "pedir para repetir, volume alto" },
+  { name: "Ânimo", hint: "tristeza, desinteresse, solidão" },
+];
+function IcopeCard() {
+  return (
+    <section className="card" aria-labelledby="icope-heading">
+      <div className="card-heading">
+        <div>
+          <span className="eyebrow">REFERÊNCIA OMS · ICOPE</span>
+          <h2 id="icope-heading">O que a Lia observa</h2>
+        </div>
+        <HeartHandshake size={20} />
+      </div>
+      <p className="soft-label">
+        Nas conversas do dia a dia, a Lia escuta sinais que a família
+        acompanha, inspirados nos domínios de capacidade do manual ICOPE da
+        OMS:
+      </p>
+      <ul className="icope-list">
+        {ICOPE_DOMAINS.map((d) => (
+          <li key={d.name}>
+            <strong>{d.name}</strong>
+            <span>{d.hint}</span>
+          </li>
+        ))}
+        <li>
+          <strong>Apoio a quem cuida</strong>
+          <span>como está o dia do círculo familiar</span>
+        </li>
+      </ul>
+      <p className="fine-print">
+        Escuta informada pelo Integrated care for older people (OMS, 2024).
+        Não é avaliação clínica nem screening diagnóstico — o que a Lia
+        registra é o relato da pessoa, para o círculo acompanhar junto.
+      </p>
     </section>
   );
 }
