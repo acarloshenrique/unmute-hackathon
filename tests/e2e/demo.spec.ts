@@ -21,6 +21,7 @@ test("jornada persistida: agenda → convite → consentimento → tarefa → ac
   });
   expect(reset.ok()).toBe(true);
   await page.goto("/demo");
+  await page.getByRole("link", { name: "Controles da apresentação" }).click();
   await page
     .getByRole("button", { name: "Ana Acompanhar e organizar" })
     .click();
@@ -85,6 +86,7 @@ test("jornada persistida: agenda → convite → consentimento → tarefa → ac
     page.getByText("leite · pão · café", { exact: true }),
   ).toBeVisible();
   await page.getByRole("link", { name: "Sala de demonstração" }).click();
+  await page.getByRole("link", { name: "Controles da apresentação" }).click();
   await page.getByRole("button", { name: "Ana fictícia", exact: true }).click();
   await page.getByRole("link", { name: "Abrir painel da família" }).click();
   await expect(

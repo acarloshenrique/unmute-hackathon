@@ -2,7 +2,15 @@
 
 **Versão entregue (submissão UNMUTE): commit `9844109` em `main`.** Conversa de áudio real validada em 22/11 (sessão gravada: pedido → confirmação por voz → correção → confirmação visual → tarefa aceita). Ver `docs/TESTES-VOZ.md` para o que foi e o que não foi testado. Demo pública: https://carecircle.jazzautomations.com.br/demo.
 
-CareCircle transforma conversas autorizadas em coordenação familiar. Helena, Ana e Pedro são pessoas fictícias. Cenário único desta demo: Helena pede companhia de Pedro para ir à feira no sábado, corrige para 10h, revisa na tela e confirma. Somente então Pedro recebe um cartão e pode tocar **Posso ajudar**.
+CareCircle transforma conversas autorizadas em coordenação familiar. Helena, Ana e Pedro são pessoas fictícias. Cenário de ação da sessão de voz no navegador: Helena pede companhia de Pedro para ir à feira no sábado, corrige para 10h, revisa na tela e confirma. Somente então Pedro recebe um cartão e pode tocar **Posso ajudar**.
+
+## Experimentar a Lia em `/demo`
+
+O visitante escolhe companhia para a feira, lembrete de remédio, companhia na consulta ou conversa sobre o almoço. Cada cartão mostra a fala que a Lia usará. A ligação é a opção inicial. O visitante também pode solicitar áudio ou texto no WhatsApp para seu próprio telefone. Números brasileiros aceitam DDD e números internacionais aceitam o prefixo `+`.
+
+Ligação e áudio reutilizam as pontes de `/api/outreach` do painel. O texto usa a instância Evolution v2 do time. Configure no servidor `CARECIRCLE_EVOLUTION_TEXT_URL` com a URL completa de `/message/sendText/{instancia}` e `CARECIRCLE_EVOLUTION_API_KEY` com a chave da instância. A tela avisa quando o texto está indisponível. A confirmação na tela indica que o serviço aceitou o pedido. O recebimento no telefone depende do canal.
+
+**Painel da família** abre `/familia` com o perfil fictício de Ana. **Controles da apresentação** leva à sala de testes em `/demo/controle`. Os quatro exemplos de contato usam falas fictícias e o envio de um exemplo não cria tarefas nem registros de saúde.
 
 ## Escolher cuidadora virtual
 
