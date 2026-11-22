@@ -13,10 +13,12 @@ import {
   LoaderCircle,
   MessageCircle,
   PhoneCall,
+  Pill,
   Plus,
   Send,
   ShieldCheck,
   Sparkles,
+  Users,
   X,
 } from "lucide-react";
 import {
@@ -589,6 +591,8 @@ function Dashboard({
           )}
           <Copilot data={data} act={act} />
           <Channels />
+          <MedsCard />
+          <AgendaCard />
           <section className="card">
             <div className="card-heading">
               <h2>Próximas conversas</h2>
@@ -687,6 +691,173 @@ function Channels() {
         </button>
       </div>
       {note && <p className="callout">{note}</p>}
+      {err && (
+        <p role="alert" className="form-error">
+          {err}
+        </p>
+      )}
+    </section>
+  );
+}
+type LiaMed = {
+  name: string;
+  freq_h: number | null;
+  obs: string;
+  estoque: number | null;
+  por_vez: number;
+  proximo: number | null;
+};
+type LiaContact = { nome: string; papel: string; number: string };
+type LiaData = {
+  meds: LiaMed[];
+  contacts: LiaContact[];
+  family: { name: string; persona: string }[];
+};
+function MedsCard() {
+  const [meds, setMeds] = useState<LiaMed[] | null>(null),
+    [busy, setBusy] = useState(""),
+    [note, setNote] = useState(""),
+    [err, setErr] = useState("");
+  const load = useCallback(async () => {
+    try {
+      const j = await api<LiaData>("/api/lia-data");
+      setMeds(j.meds);
+      setErr("");
+    } catch (e) {
+      setErr(
+        e instanceof Error ? e.message : "Não consegui consultar a Lia agora.",
+      );
+    }
+  }, []);
+  useEffect(() => {
+    void load();
+  }, [load]);
+  async function tomei(name: string) {
+    setBusy(name);
+    setNote("");
+    setErr("");
+    try {
+      const j = await api<{ result?: string }>("/api/lia-data", {
+        action: "tomei",
+        name,
+      });
+      setNote(j.result || "Dose registrada.");
+      await load();
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : "Não foi possível registrar.");
+    } finally {
+      setBusy("");
+    }
+  }
+  return (
+    <section className="card">
+      <div className="card-heading">
+        <h2>Remédios</h2>
+        <Pill size={20} />
+      </div>
+      {meds === null ? (
+        <p className="muted">Consultando a Lia…</p>
+      ) : meds.length === 0 ? (
+        <p className="muted">
+          Nenhum remédio cadastrado — cadastre pela Lia no WhatsApp
+        </p>
+      ) : (
+        meds.map((m) => (
+          <div className="readiness" key={m.name}>
+            <span>
+              {m.name}{" "}
+              <small>
+                a cada {m.freq_h}h{m.obs ? ` · ${m.obs}` : ""}
+                {m.estoque !== null ? ` · estoque ${m.estoque}` : ""}
+              </small>
+            </span>
+            <button
+              className="button button-small"
+              disabled={busy === m.name}
+              onClick={() => void tomei(m.name)}
+            >
+              {busy === m.name ? "Registrando…" : "Tomei"}
+            </button>
+          </div>
+        ))
+      )}
+      {note && <p className="callout">{note}</p>}
+      {err && (
+        <p role="alert" className="form-error">
+          {err}
+        </p>
+      )}
+    </section>
+  );
+}
+const PAPEL_LABEL: Record<string, string> = {
+  medico: "Médico",
+  exame: "Exame",
+  farmacia: "Farmácia",
+  util: "Útil",
+  emergencia: "Emergência",
+};
+function AgendaCard() {
+  const [data, setData] = useState<LiaData | null>(null),
+    [err, setErr] = useState("");
+  useEffect(() => {
+    api<LiaData>("/api/lia-data")
+      .then(setData)
+      .catch((e) =>
+        setErr(e instanceof Error ? e.message : "Indisponível agora."),
+      );
+  }, []);
+  const byKind: Record<string, LiaContact[]> = {};
+  for (const c of data?.contacts ?? [])
+    (byKind[c.papel || "outro"] ??= []).push(c);
+  const order = ["medico", "exame", "farmacia", "util"];
+  const kinds = [
+    ...order.filter((k) => byKind[k]?.length),
+    ...Object.keys(byKind).filter((k) => !order.includes(k)),
+  ];
+  return (
+    <section className="card">
+      <div className="card-heading">
+        <h2>Agenda do círculo</h2>
+        <Users size={20} />
+      </div>
+      {data === null ? (
+        <p className="muted">Consultando a Lia…</p>
+      ) : (
+        <>
+          {data.family.length > 0 && (
+            <div className="readiness">
+              <span>
+                Família no círculo{" "}
+                <small>{data.family.map((f) => f.name).join(", ")}</small>
+              </span>
+              <strong>
+                {data.family.length}{" "}
+                {data.family.length === 1 ? "pessoa" : "pessoas"}
+              </strong>
+            </div>
+          )}
+          {kinds.length === 0 ? (
+            <p className="muted">
+              Agenda vazia — cadastre contatos pela Lia no WhatsApp
+            </p>
+          ) : (
+            kinds.map((k) => (
+              <div key={k}>
+                <span className="eyebrow">
+                  {(PAPEL_LABEL[k] || k).toUpperCase()}
+                </span>
+                {byKind[k].map((c) => (
+                  <div className="readiness" key={`${c.papel}-${c.nome}`}>
+                    <span>{c.nome}</span>
+                    <small>{c.number}</small>
+                  </div>
+                ))}
+              </div>
+            ))
+          )}
+        </>
+      )}
       {err && (
         <p role="alert" className="form-error">
           {err}
