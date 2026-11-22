@@ -698,7 +698,7 @@ function Channels() {
     [busy, setBusy] = useState(""),
     [note, setNote] = useState(""),
     [err, setErr] = useState("");
-  async function go(kind: "whatsapp" | "call") {
+  async function go(kind: "whatsapp" | "call", to?: string, text?: string) {
     setBusy(kind);
     setErr("");
     setNote("");
@@ -706,7 +706,7 @@ function Channels() {
       const r = await fetch("/api/outreach", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ kind, to: num, message: msg }),
+        body: JSON.stringify({ kind, to: to ?? num, message: text ?? msg }),
       });
       const j = await r.json();
       if (!r.ok) throw new Error(j.error || "Falha no envio.");
@@ -763,6 +763,19 @@ function Channels() {
           onClick={() => void go("call")}
         >
           {busy === "call" ? "Ligando…" : "Ligar"}
+        </button>
+        <button
+          className="button button-small"
+          disabled={!!busy}
+          onClick={() =>
+            void go(
+              "call",
+              "5511951684260",
+              "Oi Carlos, aqui é a Lia do CareCircle. Tô ligando ao vivo da demonstração pra mostrar que eu alcanço a família por telefone também.",
+            )
+          }
+        >
+          {busy === "call" ? "Ligando…" : "Ligar pro Carlos"}
         </button>
       </div>
       {note && <p className="callout">{note}</p>}
