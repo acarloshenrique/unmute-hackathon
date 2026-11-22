@@ -20,7 +20,11 @@ test("visitante escolhe exemplo e canal, informa telefone e entra no painel de A
     page.getByRole("radio", { name: "Ligação", exact: true }),
   ).toBeChecked();
   await page.getByRole("button", { name: "Receber ligação da Lia" }).click();
-  await expect(page.getByRole("alert")).toContainText("Confira o DDD");
+  await expect(
+    page
+      .getByRole("region", { name: "Experimente no seu celular" })
+      .getByRole("alert"),
+  ).toContainText("Confira o DDD");
   expect(requests).toHaveLength(0);
   await page.getByText("Lembrete de remédio", { exact: true }).click();
   await page.getByLabel("Seu telefone com DDD").fill("(11) 98765-4321");
@@ -78,7 +82,11 @@ test("texto no WhatsApp respeita configuração e exibe falha sem confirmar envi
     expect(attempts).toBe(0);
   } else {
     await submit.click();
-    await expect(page.getByRole("alert")).toContainText("não confirmou");
+    await expect(
+      page
+        .getByRole("region", { name: "Experimente no seu celular" })
+        .getByRole("alert"),
+    ).toContainText("não confirmou");
     expect(attempts).toBe(1);
   }
 });
