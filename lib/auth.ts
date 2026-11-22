@@ -37,7 +37,13 @@ export function checkOrigin(req: Request) {
       const proto = req.headers.get("x-forwarded-proto")
         ? `${req.headers.get("x-forwarded-proto")}:`
         : new URL(req.url).protocol;
-      allowed = parsed.host === requestHost(req) && parsed.protocol === proto;
+      const extra = (process.env.CARECIRCLE_ALLOWED_ORIGINS || "")
+        .split(",")
+        .map((h) => h.trim())
+        .filter(Boolean);
+      allowed =
+        (parsed.host === requestHost(req) || extra.includes(parsed.host)) &&
+        parsed.protocol === proto;
     } catch {
       /* malformed origins are denied */
     }
