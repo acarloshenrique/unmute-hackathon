@@ -1,6 +1,6 @@
 # CareCircle — voz gerenciada pela Agora
 
-**Versão entregue (submissão UNMUTE): commit `2a71194`.** Conversa de áudio real validada em 22/11 (sessão gravada: pedido → confirmação por voz → correção → confirmação visual → tarefa aceita). Ver `docs/TESTES-VOZ.md` para o que foi e o que não foi testado.
+**Versão entregue (submissão UNMUTE): commit `9844109` em `main`.** Conversa de áudio real validada em 22/11 (sessão gravada: pedido → confirmação por voz → correção → confirmação visual → tarefa aceita). Ver `docs/TESTES-VOZ.md` para o que foi e o que não foi testado. Demo pública: https://carecircle.jazzautomations.com.br/demo.
 
 CareCircle transforma conversas autorizadas em coordenação familiar. Helena, Ana e Pedro são pessoas fictícias. Cenário único desta demo: Helena pede companhia de Pedro para ir à feira no sábado, corrige para 10h, revisa na tela e confirma. Somente então Pedro recebe um cartão e pode tocar **Posso ajudar**.
 
@@ -15,6 +15,17 @@ Na tela `/idoso` não há seletor: o convite informa o nome e oferece **Conversa
 SQLite cria a tabela aditiva `caregiver_preferences` no primeiro acesso após reiniciar, preservando os dados existentes; ausência de escolha significa Lia. Para a migração futura PostgreSQL, aplicar `migrations/postgres-caregiver-preferences.sql` após a base existente (não executado neste ambiente).
 
 [Validação e roteiro desta funcionalidade](docs/caregiver-profiles.md). Nenhuma dependência, chave ou configuração OpenAI Realtime foi acrescentada.
+
+## Canais reais (extensão)
+
+No painel `/familia`, o cartão **Canais reais** envia a mensagem digitada por dois caminhos reais, fora do fluxo de voz Agora do app:
+
+- **WhatsApp**: a mensagem chega como nota de voz da Lia via ponte local do canal (Evolution API + TTS), serviço externo a este repositório (`/api/outreach` → ponte no servidor).
+- **Ligar**: dispara uma ligação telefônica real pela ponte Twilio do lab (`/opt/naima-call`, fora deste repo), que fala a mensagem ao vivo com a persona Lia.
+
+O mesmo painel traz os cartões **Remédios** e **Agenda do círculo**: leem via `/api/lia-data` a lista de remédios (com próximo horário e estoque quando informados), os contatos do círculo agrupados por papel (médico, exame, farmácia, úteis) e os membros da família na ponte da Lia — números saem mascarados na API e o botão **Tomei** registra a dose nessa ponte.
+
+São extensões com componentes externos declarados (ver `docs/SUBMISSAO.md`); dependem das pontes rodando no servidor e não alteram o consentimento do fluxo principal: voz continua sem autorizar compartilhamento.
 
 ## Caminho de voz atual
 
@@ -71,8 +82,13 @@ Scheduler opcional: `npm run scheduler`. Ele cria convites persistidos; não abr
 | `CARECIRCLE_DB_PATH` | SQLite persistente |
 | `OPENAI_API_KEY` | Opcional, somente copilot textual; nunca voz |
 | `OPENAI_MODEL` | Opcional, modelo do copilot textual |
+| `CARECIRCLE_ALLOWED_ORIGINS` | Hosts extras aceitos como origem (separados por vírgula), usado pelo proxy do domínio da demo |
 
 Nenhuma chave foi criada ou trocada. `OPENAI_REALTIME_MODEL`, `CARECIRCLE_PUBLIC_URL` e `AGORA_TTS_VOICE` não controlam a voz atual.
+
+## Avatar da conversa
+
+Na tela `/idoso`, a sessão mostra um **avatar 3D da assistente** renderizado no cliente (modelo em `public/avatars/lia.glb`), que acompanha o nível do áudio remoto do agente Agora — a boca abre enquanto a Lia fala. Há fallback com poses pré-renderizadas quando WebGL falha ou quando o usuário prefere movimento reduzido. É um recurso visual local; não é track de avatar de vendor Agora.
 
 ## Demo Helena → Pedro
 

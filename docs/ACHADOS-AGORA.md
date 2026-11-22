@@ -92,7 +92,7 @@ Ajuste fino no venue: se a sala estiver MUITO ruidosa, subir `speech_threshold` 
 - MiniMax TTS pt-BR (voz natural) + edge-tts local como alternativa ✔
 - RTM data channel com transcript ao vivo (baseline quickstart) ✔
 - **PSTN real: ligação telefônica funcionando** via Twilio Calls API + Media Streams (a rota Agora SIP está quebrada — bug #1 — então bypass direto Twilio) ✔
-- Evolution API própria servindo WhatsApp (pareada hoje, instância `jazz` open) ✔
+- Evolution API própria servindo WhatsApp (pareada hoje, instância dedicada `open`) ✔
 
 ## Lacunas que a demo precisa decidir
 

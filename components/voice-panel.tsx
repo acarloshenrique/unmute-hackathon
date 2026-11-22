@@ -1,7 +1,6 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import {
-  AudioLines,
   LoaderCircle,
   Mic,
   MicOff,
@@ -9,7 +8,7 @@ import {
   ShieldCheck,
   Volume2,
 } from "lucide-react";
-import type { IAgoraRTCClient, IMicrophoneAudioTrack } from "agora-rtc-sdk-ng";
+import type { IAgoraRTCClient, IMicrophoneAudioTrack, IRemoteAudioTrack } from "agora-rtc-sdk-ng";
 import type { RTMClient } from "agora-rtm";
 import type { AgoraVoiceAI } from "agora-agent-client-toolkit";
 import { api, type Data } from "@/lib/client";
@@ -18,6 +17,7 @@ import {
   type CaregiverId,
   type CaregiverProfile,
 } from "@/lib/caregivers";
+import { ConversationAvatar } from "./conversation-avatar";
 import { makeCleanup } from "@/lib/voice-cleanup";
 import {
   agentUiState,
@@ -44,7 +44,7 @@ const stateText: Record<State, string> = {
   listening: "está ouvindo",
   thinking: "está preparando a resposta",
   speaking: "está falando",
-  interrupted: "Você interrompeu a resposta",
+  interrupted: "Estou ouvindo você",
   reconnecting: "Reconectando à Agora…",
   error: "A conversa precisa de atenção",
   disconnected: "Conversa encerrada",
@@ -99,9 +99,11 @@ export function VoicePanel({
     meter?: ReturnType<typeof setInterval>;
   }>({});
   const cancelled = useRef(false);
+  const [avatarTrack, setAvatarTrack] = useState<IRemoteAudioTrack | null>(null);
   const alive = useRef(true),
     busy = useRef(false);
   const cleanup = async () => {
+    setAvatarTrack(null);
     cancelled.current = true;
     const r = refs.current;
     clearTimeout(r.timer);
@@ -164,6 +166,7 @@ export function VoicePanel({
     let reportedError = "";
     function fail(message: string) {
       reportedError = message;
+      if (alive.current) setAvatarTrack(null);
       cancelled.current = true;
       clearTimeout(owned.timer);
       void owned.cleanup?.().then((failures) => {
@@ -306,12 +309,19 @@ export function VoicePanel({
           );
         }
       });
+      rtc.on("user-unpublished", (user, media) => {
+        if (media === "audio" && String(user.uid) === String(session.agent_uid) && alive.current)
+          setAvatarTrack(null);
+      });
       rtc.on("user-published", async (user, media) => {
         try {
           await rtc.subscribe(user, media);
-          if (media === "audio") {
+          if (media === "audio" && alive.current && !cancelled.current && refs.current.rtc === rtc) {
             user.audioTrack?.play();
-            if (alive.current) setJoined(true);
+            if (String(user.uid) === String(session.agent_uid)) {
+              setAvatarTrack(user.audioTrack || null);
+              setJoined(true);
+            }
           }
         } catch {
           if (alive.current)
@@ -450,18 +460,20 @@ export function VoicePanel({
           {joined ? "AGENTE NO CANAL AGORA" : "VOZ AO VIVO · AGORA"}
         </span>
       </div>
-      <div className={`voice-orb ${state === "speaking" ? "is-speaking" : ""}`}>
-        <div className="voice-orb-inner">
-          <AudioLines size={58} strokeWidth={1.3} />
-        </div>
-      </div>
+      <ConversationAvatar
+        name={speaker.name}
+        live={joined && active && state !== "reconnecting"}
+        canSpeak={state === "speaking" || state === "connected"}
+        listening={state === "listening" || state === "interrupted"}
+        track={avatarTrack}
+      />
       <h2>
         {["listening", "thinking", "speaking"].includes(state)
           ? `${speaker.name} ${stateText[state]}`
           : stateText[state]}
       </h2>
       <p>
-        {speaker.name} · {speaker.style}
+        {speaker.name} · Assistente virtual · {speaker.style}
       </p>
       {invitation && !active && (
         <div className="voice-invitation">
@@ -505,7 +517,6 @@ export function VoicePanel({
               disabled={!configured || !consented || responding}
               onClick={() => void start()}
             >
-              <Mic size={23} />{" "}
               {responding
                 ? "Aguarde…"
                 : invitation

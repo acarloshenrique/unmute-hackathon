@@ -8,8 +8,8 @@
 - [x] Typecheck, lint, 36 testes unitários, 2 E2E e build.
 - [x] README, arquitetura, relatório, roteiro, pitch e slides.
 - [ ] Validar OpenAI com saldo disponível: chamada real retornou 429 / credit_balance_exhausted.
-- [ ] Validar fala/áudio Agora: faltam App ID, App Certificate e callback HTTPS público.
-- [ ] Comprovar P0 completo por voz antes de gravar/apresentar como funcional.
-- [ ] Gravar demo e enviar submissão (não realizados automaticamente).
+- [x] Validar fala/áudio Agora: credenciais configuradas e sessão real executada em 22/11 (`docs/TESTES-VOZ.md`, caso 01).
+- [x] Comprovar P0 completo por voz — fluxo feliz executado em 22/11 (pedido → correção → confirmação visual → tarefa aceita).
+- [x] Gravar demo e preparar submissão (vídeos da sessão em `deliverables/`; vídeo de pitch `carecircle_pitch_lia.mp4`; texto em `docs/SUBMISSAO.md`); a confirmação do envio no OS fica com o time.
 
-P1/P2 não são declarados completos enquanto faltar a prova real de voz.
+Prova real de voz registrada em 22/11 (`docs/TESTES-VOZ.md`); barge-in isolado, desconexão prolongada e latência medida continuam pendentes. P1/P2 só são declarados completos com evidência própria.

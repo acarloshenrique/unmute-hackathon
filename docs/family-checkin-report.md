@@ -20,9 +20,9 @@ destinado a Ana. Use somente dados sintéticos.
 
 ## Validação desta alteração
 
-- `npm run check`: verificação de tipos, lint, 69 testes unitários e build aprovados.
+- `npm run check`: verificação de tipos, lint, 73 testes unitários e build aprovados.
 - Teste HTTP no build local: três sessões fictícias, cache privado, rascunho
   oculto, isolamento de destinatários, aceite atualizado e revogação aprovados.
-- Playwright: teste de API aprovado, mas o Chromium local foi bloqueado pelo
-  ambiente antes dos cinco testes com navegador. A verificação visual segue
-  pendente; a alteração não afeta a integração de voz.
+- Playwright: 7 testes aprovados no Chromium headless local, incluindo o
+  aceite persistido no relatório e as poses sintéticas do avatar em WebGL.
+  A execução não fez chamadas nem enviou mensagens reais.

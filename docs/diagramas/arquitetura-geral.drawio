@@ -1,0 +1,190 @@
+<mxfile host="app.diagrams.net" agent="Devin" version="24.7.17" type="device">
+  <diagram name="Arquitetura geral" id="carecircle-geral">
+    <mxGraphModel dx="1400" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="990" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- ======= ATORES ======= -->
+        <mxCell id="actor_helena" value="&lt;b&gt;Dona Helena&lt;/b&gt;&lt;br&gt;navegador /idoso&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;microfone + alto-falante&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#666666;verticalAlign=middle;fontSize=12" vertex="1" parent="1">
+          <mxGeometry x="30" y="70" width="170" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="actor_familia" value="&lt;b&gt;Família — Ana / Pedro&lt;/b&gt;&lt;br&gt;navegador /familia · /demo" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#666666;verticalAlign=middle;fontSize=12" vertex="1" parent="1">
+          <mxGeometry x="30" y="190" width="170" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="actor_wa" value="&lt;b&gt;Círculo no WhatsApp&lt;/b&gt;&lt;br&gt;notas de voz e texto&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;familiares + agenda de contatos&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#666666;verticalAlign=middle;fontSize=12" vertex="1" parent="1">
+          <mxGeometry x="30" y="310" width="170" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="actor_pstn" value="&lt;b&gt;Telefone comum&lt;/b&gt;&lt;br&gt;(rede PSTN)&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;recebe a ligação da Lia&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#666666;verticalAlign=middle;fontSize=12" vertex="1" parent="1">
+          <mxGeometry x="30" y="440" width="170" height="80" as="geometry" />
+        </mxCell>
+
+        <!-- ======= BORDA PÚBLICA ======= -->
+        <mxCell id="g_edge" value="Borda pública — ingress" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFF2CC;strokeColor=#D6B656;verticalAlign=top;fontSize=13;fontStyle=1;spacingTop=6;container=1;collapsible=0;dashed=0" vertex="1" parent="1">
+          <mxGeometry x="260" y="40" width="250" height="480" as="geometry" />
+        </mxCell>
+        <mxCell id="vercel" value="&lt;b&gt;Vercel — projeto «proxy»&lt;/b&gt;&lt;br&gt;carecircle.jazzautomations.com.br&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;vercel.json: rewrite /* →&lt;br&gt;demo-hermes.taild017e2.ts.net:8443&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#D6B656;verticalAlign=middle;fontSize=11" vertex="1" parent="1">
+          <mxGeometry x="280" y="85" width="210" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="funnel" value="&lt;b&gt;Tailscale Funnel&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;(roda na demo-hermes)&lt;/font&gt;&lt;br&gt;:8443 → 127.0.0.1:3900&lt;br&gt;:443 /liawa → :8645&lt;br&gt;:443 /ligar-api → :8765" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#D6B656;verticalAlign=middle;fontSize=11" vertex="1" parent="1">
+          <mxGeometry x="280" y="215" width="210" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="edge_note" value="&lt;font style=&quot;font-size:10px&quot;&gt;Todo tráfego público do app entra&lt;br&gt;pelo funnel :8443. Os mounts de :443&lt;br&gt;servem a edge Agora (tool do lia-wa)&lt;br&gt;e o retorno wss do Twilio.&lt;/font&gt;" style="text;html=1;align=center;verticalAlign=middle;fontSize=10;fontColor=#7F6000" vertex="1" parent="1">
+          <mxGeometry x="275" y="350" width="220" height="70" as="geometry" />
+        </mxCell>
+
+        <!-- ======= DEMO-HERMES ======= -->
+        <mxCell id="g_box" value="demo-hermes — Oracle Cloud · Tailscale node" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#DAE8FC;strokeColor=#6C8EBF;verticalAlign=top;fontSize=13;fontStyle=1;spacingTop=6;container=1;collapsible=0" vertex="1" parent="1">
+          <mxGeometry x="560" y="40" width="470" height="910" as="geometry" />
+        </mxCell>
+
+        <mxCell id="g_app" value="Next.js CareCircle — :3900 · carecircle.service" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#6C8EBF;verticalAlign=top;fontSize=12;fontStyle=1;spacingTop=6;container=1;collapsible=0" vertex="1" parent="1">
+          <mxGeometry x="580" y="85" width="430" height="380" as="geometry" />
+        </mxCell>
+        <mxCell id="app_pages" value="&lt;b&gt;Páginas&lt;/b&gt; — /demo · /idoso · /familia&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;voz no browser: agora-rtc-sdk-ng · agora-rtm · agent-client-toolkit&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E1ECFA;strokeColor=#6C8EBF;verticalAlign=middle;fontSize=11" vertex="1" parent="1">
+          <mxGeometry x="600" y="130" width="390" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="app_apis" value="&lt;b&gt;APIs&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;/api/voice/{start,stop,text} · /api/voice/tools/{sid}/prepare-request&lt;br&gt;/api/snapshot · /api/actions/* · /api/proposals · /api/copilot&lt;br&gt;/api/outreach · /api/demo &lt;i&gt;(· /api/voice/llm → 410 aposentado)&lt;/i&gt;&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E1ECFA;strokeColor=#6C8EBF;verticalAlign=middle;fontSize=11" vertex="1" parent="1">
+          <mxGeometry x="600" y="195" width="390" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="app_domain" value="&lt;b&gt;lib/auth + lib/domain&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;sessão cookie · checkOrigin · consentimentos&lt;br&gt;(checkins · family_updates) · proposals → tasks + notifications&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E1ECFA;strokeColor=#6C8EBF;verticalAlign=middle;fontSize=11" vertex="1" parent="1">
+          <mxGeometry x="600" y="285" width="390" height="65" as="geometry" />
+        </mxCell>
+        <mxCell id="sqlite" value="&lt;b&gt;SQLite — node:sqlite (WAL)&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;members · consents · voice_sessions · proposals · tasks · notifications · audit_logs&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFE6CC;strokeColor=#D79B00;verticalAlign=middle;fontSize=11" vertex="1" parent="1">
+          <mxGeometry x="600" y="360" width="390" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="liawa" value="&lt;b&gt;lia-wa.service — FastAPI :8645&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;POST /webhook (Evolution → messages.upsert)&lt;br&gt;nota de voz → Groq Whisper → gpt-oss LLM → Fish TTS → nota de voz&lt;br&gt;comandos: familia · contato · onboard · marca · avisa · remedio · tomei&lt;br&gt;meds_loop 60s · memory.jsonl · GET /api/snapshot do app (read-only)&lt;br&gt;loopback: /send /meds /contacts /family /meds/action&lt;br&gt;público via funnel /liawa: /tool/{token} (tool da edge Agora)&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#6C8EBF;verticalAlign=middle;fontSize=11" vertex="1" parent="1">
+          <mxGeometry x="580" y="500" width="430" height="150" as="geometry" />
+        </mxCell>
+        <mxCell id="naima" value="&lt;b&gt;naima-call.service — :8765&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;somente loopback&lt;br&gt;POST /dial — X-Call-Key&lt;br&gt;ponte telefone ↔ RTC&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#6C8EBF;verticalAlign=middle;fontSize=11" vertex="1" parent="1">
+          <mxGeometry x="580" y="685" width="200" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="evolution" value="&lt;b&gt;Evolution API (docker) — :8082&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;instância jazz2&lt;br&gt;+ evo-redis · evo-postgres&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#6C8EBF;verticalAlign=middle;fontSize=11" vertex="1" parent="1">
+          <mxGeometry x="810" y="685" width="200" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="box_note" value="&lt;font style=&quot;font-size:10px&quot;&gt;Canais reais: o app fala com lia-wa e naima-call&lt;br&gt;apenas por loopback (127.0.0.1) — ver fluxo-canais.drawio&lt;/font&gt;" style="text;html=1;align=center;verticalAlign=middle;fontSize=10;fontColor=#1F3B60" vertex="1" parent="1">
+          <mxGeometry x="580" y="820" width="430" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- ======= AGORA CLOUD ======= -->
+        <mxCell id="g_agora" value="Agora Cloud — serviço gerenciado" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#D5E8D4;strokeColor=#82B366;verticalAlign=top;fontSize=13;fontStyle=1;spacingTop=6;container=1;collapsible=0" vertex="1" parent="1">
+          <mxGeometry x="1080" y="40" width="300" height="470" as="geometry" />
+        </mxCell>
+        <mxCell id="agora_rtc" value="&lt;b&gt;RTC + RTM edge&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;áudio do browser · legendas/estado do agente&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#82B366;verticalAlign=middle;fontSize=11" vertex="1" parent="1">
+          <mxGeometry x="1100" y="85" width="260" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="g_convo" value="Conversational AI — agente managed (Area US)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#82B366;verticalAlign=top;fontSize=11;fontStyle=1;spacingTop=6;container=1;collapsible=0" vertex="1" parent="1">
+          <mxGeometry x="1100" y="165" width="260" height="220" as="geometry" />
+        </mxCell>
+        <mxCell id="agora_stt" value="&lt;b&gt;STT · AresSTT&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;pt-PT + keywords do cenário&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E8F5E9;strokeColor=#82B366;verticalAlign=middle;fontSize=11" vertex="1" parent="1">
+          <mxGeometry x="1115" y="210" width="230" height="45" as="geometry" />
+        </mxCell>
+        <mxCell id="agora_llm" value="&lt;b&gt;LLM · gpt-4o-mini gerenciado&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;tool: prepareRequest (REST p/ o app)&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E8F5E9;strokeColor=#82B366;verticalAlign=middle;fontSize=11" vertex="1" parent="1">
+          <mxGeometry x="1115" y="265" width="230" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="agora_tts" value="&lt;b&gt;TTS · MiniMax speech_2_6_turbo&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;voz Portuguese_Wiselady&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E8F5E9;strokeColor=#82B366;verticalAlign=middle;fontSize=11" vertex="1" parent="1">
+          <mxGeometry x="1115" y="325" width="230" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="agora_tel" value="&lt;b&gt;ConvoAI Telephony&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;POST /v2/outbound-dial — Elastic SIP&lt;br&gt;(fallback da ligação)&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#82B366;verticalAlign=middle;fontSize=11" vertex="1" parent="1">
+          <mxGeometry x="1100" y="410" width="260" height="75" as="geometry" />
+        </mxCell>
+
+        <!-- ======= APIs EXTERNAS ======= -->
+        <mxCell id="g_ext" value="APIs externas" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#F8CECC;strokeColor=#B85450;verticalAlign=top;fontSize=13;fontStyle=1;spacingTop=6;container=1;collapsible=0" vertex="1" parent="1">
+          <mxGeometry x="1080" y="540" width="300" height="410" as="geometry" />
+        </mxCell>
+        <mxCell id="groq" value="&lt;b&gt;Groq&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;Whisper large-v3-turbo/v3 — STT&lt;br&gt;gpt-oss-120b/20b — LLM do WhatsApp&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#B85450;verticalAlign=middle;fontSize=11" vertex="1" parent="1">
+          <mxGeometry x="1100" y="585" width="260" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="fish" value="&lt;b&gt;Fish Audio TTS&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;voz Isabela pt-BR · speech-1.5&lt;br&gt;(WhatsApp + narração do vídeo)&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#B85450;verticalAlign=middle;fontSize=11" vertex="1" parent="1">
+          <mxGeometry x="1100" y="670" width="260" height="65" as="geometry" />
+        </mxCell>
+        <mxCell id="openai" value="&lt;b&gt;OpenAI API&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;copilot do familiar + teste de texto&lt;br&gt;(gpt-4o-mini · chave própria — fora da voz)&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#B85450;verticalAlign=middle;fontSize=11" vertex="1" parent="1">
+          <mxGeometry x="1100" y="750" width="260" height="65" as="geometry" />
+        </mxCell>
+        <mxCell id="twilio" value="&lt;b&gt;Twilio&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;Calls API + Media Streams (wss)&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#B85450;verticalAlign=middle;fontSize=11" vertex="1" parent="1">
+          <mxGeometry x="1100" y="830" width="260" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="meta" value="&lt;b&gt;Meta / WhatsApp&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;mensageria (via Evolution/Baileys)&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#B85450;verticalAlign=middle;fontSize=11" vertex="1" parent="1">
+          <mxGeometry x="1100" y="900" width="260" height="45" as="geometry" />
+        </mxCell>
+
+        <!-- ======= EDGES ======= -->
+        <mxCell id="e1" value="HTTPS — páginas e APIs" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#666666;fontSize=10;endArrow=block" edge="1" parent="1" source="actor_helena" target="vercel">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e2" value="HTTPS" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#666666;fontSize=10;endArrow=block" edge="1" parent="1" source="actor_familia" target="vercel">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e3" value="rewrite → :8443" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#D6B656;fontSize=10;endArrow=block" edge="1" parent="1" source="vercel" target="funnel">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e4" value="proxy → :3900" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#D6B656;fontSize=10;endArrow=block" edge="1" parent="1" source="funnel" target="g_app">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e5" value="áudio RTC + legendas RTM" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#82B366;fontSize=10;endArrow=block;startArrow=block;dashed=1" edge="1" parent="1" source="actor_helena" target="agora_rtc">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e6" value="REST api.agora.io — start/stop agente" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#82B366;fontSize=10;endArrow=block" edge="1" parent="1" source="g_app" target="g_convo">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e7" value="tool call: POST /api/voice/tools/{sid}/prepare-request (Bearer · entra pelo funnel :8443)" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#B85450;fontSize=10;endArrow=block" edge="1" parent="1" source="agora_llm" target="app_apis">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e8" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#666666;fontSize=10;endArrow=block;startArrow=block" edge="1" parent="1" source="actor_wa" target="meta">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e9" value="Baileys (WS)" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#B85450;fontSize=10;endArrow=block;startArrow=block" edge="1" parent="1" source="meta" target="evolution">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e10" value="POST /webhook — messages.upsert" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#6C8EBF;fontSize=10;endArrow=block" edge="1" parent="1" source="evolution" target="liawa">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e11" value="sendWhatsAppAudio / Text / Media" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#6C8EBF;fontSize=10;endArrow=block" edge="1" parent="1" source="liawa" target="evolution">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e12" value="STT + chat completions" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#B85450;fontSize=10;endArrow=block" edge="1" parent="1" source="liawa" target="groq">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e13" value="TTS (opus)" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#B85450;fontSize=10;endArrow=block" edge="1" parent="1" source="liawa" target="fish">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e14" value="loopback :3900 — /api/demo login · /api/snapshot · /api/actions/update_task (cookie de persona)" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#6C8EBF;fontSize=10;endArrow=block" edge="1" parent="1" source="liawa" target="app_domain">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e15" value="POST /send — 127.0.0.1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#6C8EBF;fontSize=10;endArrow=block" edge="1" parent="1" source="app_apis" target="liawa">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e16" value="POST /dial?persona=lia — 127.0.0.1 + X-Call-Key" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#6C8EBF;fontSize=10;endArrow=block" edge="1" parent="1" source="app_apis" target="naima">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e17" value="Calls API — caminho principal" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#B85450;fontSize=10;endArrow=block" edge="1" parent="1" source="naima" target="twilio">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e18" value="chamada" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#B85450;fontSize=10;endArrow=block" edge="1" parent="1" source="twilio" target="actor_pstn">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e19" value="Media Streams wss — via funnel /ligar-api → :8765" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#B85450;fontSize=10;endArrow=block;dashed=1" edge="1" parent="1" source="twilio" target="naima">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e20" value="fallback" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#82B366;fontSize=10;endArrow=block" edge="1" parent="1" source="naima" target="agora_tel">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e21" value="SIP → PSTN" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#82B366;fontSize=10;endArrow=block;dashed=1" edge="1" parent="1" source="agora_tel" target="actor_pstn">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e22" value="copilot / text test" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#B85450;fontSize=10;endArrow=block" edge="1" parent="1" source="app_apis" target="openai">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e23" value="persistência" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#D79B00;fontSize=10;endArrow=block" edge="1" parent="1" source="app_domain" target="sqlite">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="legend" value="&lt;font style=&quot;font-size:10px&quot;&gt;Personas e dados são sintéticos (demo). WhatsApp da Lia = Groq + Fish por HTTP — NÃO roda na edge Agora (declarado).&lt;/font&gt;" style="text;html=1;align=left;verticalAlign=middle;fontSize=10;fontColor=#555555" vertex="1" parent="1">
+          <mxGeometry x="30" y="930" width="700" height="30" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

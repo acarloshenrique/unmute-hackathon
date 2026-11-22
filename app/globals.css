@@ -356,6 +356,9 @@ code {
   border-radius: 5px;
   white-space: nowrap;
 }
+p.soft-label {
+  white-space: normal;
+}
 .card {
   background: #fff;
   border: 1px solid var(--line);
@@ -1150,6 +1153,17 @@ details.card {
   padding: 16px 0;
   font-size: 14px;
 }
+.agenda-ask {
+  padding: 4px 0 14px;
+  border-bottom: 1px solid var(--line);
+}
+.agenda-ask textarea {
+  min-height: 46px;
+  font-size: 14px;
+}
+.agenda-ask .button-row {
+  margin-top: 9px;
+}
 .callout {
   font-size: 14px;
   padding: 15px;
@@ -1194,36 +1208,22 @@ details.card {
 .voice-top .eyebrow {
   margin: 0;
 }
-.voice-orb {
-  width: 218px;
-  height: 218px;
-  border: 1px solid #d8e3d3;
+.conversation-avatar {
+  position: relative;
+  width: min(236px, 100%);
+  aspect-ratio: 1;
+  margin: 30px auto 20px;
+  overflow: hidden;
   border-radius: 50%;
-  margin: 44px auto 29px;
-  display: grid;
-  place-items: center;
-  box-shadow:
-    0 0 0 18px #f4f7ee,
-    0 0 0 19px #e8eee2;
-  background: #e5edda;
+  background: #eee6d7 url("/avatars/lia-realista.webp") center / cover no-repeat;
+  box-shadow: 0 0 0 6px #faf7ef, 0 0 0 7px #e6dfca;
 }
-.voice-orb-inner {
-  width: 155px;
-  height: 155px;
-  display: grid;
-  place-items: center;
-  border-radius: 50%;
-  background: radial-gradient(circle at 35% 25%, #fafcf2, #c4d9b2);
-  color: #597a48;
-  box-shadow: 0 5px 25px #7c966326;
-}
-.is-speaking .voice-orb-inner {
-  animation: breathe 1.2s ease-in-out infinite;
-}
-@keyframes breathe {
-  50% {
-    transform: scale(1.06);
-  }
+.avatar-canvas {
+  position: absolute;
+  inset: 0;
+  height: 100%;
+  width: 100%;
+  visibility: hidden;
 }
 .voice-card h2 {
   font-family: Georgia, serif;
@@ -1848,11 +1848,7 @@ details.card {
     justify-content: center;
     gap: 10px;
   }
-  .voice-orb {
-    width: 185px;
-    height: 185px;
-    margin: 39px auto 30px;
-  }
+  .conversation-avatar { width: min(205px, 100%); margin: 24px auto; }
   .voice-card h2 {
     font-size: 26px;
   }

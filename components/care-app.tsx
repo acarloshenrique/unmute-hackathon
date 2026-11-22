@@ -12,10 +12,13 @@ import {
   Leaf,
   LoaderCircle,
   MessageCircle,
+  PhoneCall,
+  Pill,
   Plus,
   Send,
   ShieldCheck,
   Sparkles,
+  Users,
   X,
 } from "lucide-react";
 import {
@@ -590,6 +593,9 @@ function Dashboard({
             />
           )}
           <Copilot data={data} act={act} />
+          <Channels />
+          <MedsCard />
+          <AgendaCard />
           <section className="card">
             <div className="card-heading">
               <h2>Próximas conversas</h2>
@@ -682,6 +688,320 @@ function FamilyCheckinReportCard({
             resumo não avalia a saúde nem altera o plano de acompanhamento.
           </p>
         </>
+      )}
+    </section>
+  );
+}
+function Channels() {
+  const [num, setNum] = useState(""),
+    [msg, setMsg] = useState(""),
+    [busy, setBusy] = useState(""),
+    [note, setNote] = useState(""),
+    [err, setErr] = useState("");
+  async function go(kind: "whatsapp" | "call") {
+    setBusy(kind);
+    setErr("");
+    setNote("");
+    try {
+      const r = await fetch("/api/outreach", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ kind, to: num, message: msg }),
+      });
+      const j = await r.json();
+      if (!r.ok) throw new Error(j.error || "Falha no envio.");
+      setNote(
+        kind === "whatsapp"
+          ? "Enviado — a pessoa recebe uma nota de voz da Lia no WhatsApp."
+          : "Ligando — a Lia chama e fala a mensagem ao vivo.",
+      );
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : "Falha no envio.");
+    } finally {
+      setBusy("");
+    }
+  }
+  return (
+    <section className="card">
+      <div className="card-heading">
+        <h2>Canais reais</h2>
+        <PhoneCall size={20} />
+      </div>
+      <p className="soft-label">
+        A Lia alcança a família onde ela já está — mensagem vira nota de voz,
+        ligação fala ao vivo.
+      </p>
+      <label>
+        Número
+        <input
+          value={num}
+          onChange={(e) => setNum(e.target.value)}
+          placeholder="5511..."
+          inputMode="tel"
+        />
+      </label>
+      <label>
+        Mensagem
+        <input
+          value={msg}
+          onChange={(e) => setMsg(e.target.value)}
+          placeholder="Lembrete da consulta de sexta de manhã"
+          maxLength={400}
+        />
+      </label>
+      <div className="button-row">
+        <button
+          className="button button-small"
+          disabled={!!busy || !num || !msg}
+          onClick={() => void go("whatsapp")}
+        >
+          {busy === "whatsapp" ? "Enviando…" : "WhatsApp"}
+        </button>
+        <button
+          className="button button-small"
+          disabled={!!busy || !num || !msg}
+          onClick={() => void go("call")}
+        >
+          {busy === "call" ? "Ligando…" : "Ligar"}
+        </button>
+      </div>
+      {note && <p className="callout">{note}</p>}
+      {err && (
+        <p role="alert" className="form-error">
+          {err}
+        </p>
+      )}
+    </section>
+  );
+}
+type LiaMed = {
+  name: string;
+  freq_h: number | null;
+  obs: string;
+  estoque: number | null;
+  por_vez: number;
+  proximo: number | null;
+};
+type LiaContact = { nome: string; papel: string; number: string };
+type LiaData = {
+  meds: LiaMed[];
+  contacts: LiaContact[];
+  family: { name: string; persona: string }[];
+};
+function MedsCard() {
+  const [meds, setMeds] = useState<LiaMed[] | null>(null),
+    [busy, setBusy] = useState(""),
+    [note, setNote] = useState(""),
+    [err, setErr] = useState("");
+  const load = useCallback(
+    () => api<LiaData>("/api/lia-data").then(
+      data => {
+        setMeds(data.meds);
+        setErr("");
+      },
+      (error: unknown) => {
+        setErr(error instanceof Error ? error.message : "Não consegui consultar a Lia agora.");
+      },
+    ),
+    [],
+  );
+  useEffect(() => {
+    void load();
+  }, [load]);
+  async function tomei(name: string) {
+    setBusy(name);
+    setNote("");
+    setErr("");
+    try {
+      const j = await api<{ result?: string }>("/api/lia-data", {
+        action: "tomei",
+        name,
+      });
+      setNote(j.result || "Dose registrada.");
+      await load();
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : "Não foi possível registrar.");
+    } finally {
+      setBusy("");
+    }
+  }
+  return (
+    <section className="card">
+      <div className="card-heading">
+        <h2>Remédios</h2>
+        <Pill size={20} />
+      </div>
+      {meds === null ? (
+        <p className="muted">Consultando a Lia…</p>
+      ) : meds.length === 0 ? (
+        <p className="muted">
+          Nenhum remédio cadastrado — cadastre pela Lia no WhatsApp
+        </p>
+      ) : (
+        meds.map((m) => (
+          <div className="readiness" key={m.name}>
+            <span>
+              {m.name}{" "}
+              <small>
+                a cada {m.freq_h}h{m.obs ? ` · ${m.obs}` : ""}
+                {m.estoque !== null ? ` · estoque ${m.estoque}` : ""}
+              </small>
+            </span>
+            <button
+              className="button button-small"
+              disabled={busy === m.name}
+              onClick={() => void tomei(m.name)}
+            >
+              {busy === m.name ? "Registrando…" : "Tomei"}
+            </button>
+          </div>
+        ))
+      )}
+      {note && <p className="callout">{note}</p>}
+      {err && (
+        <p role="alert" className="form-error">
+          {err}
+        </p>
+      )}
+    </section>
+  );
+}
+const PAPEL_LABEL: Record<string, string> = {
+  medico: "Médico",
+  exame: "Exame",
+  farmacia: "Farmácia",
+  util: "Útil",
+  emergencia: "Emergência",
+};
+function AgendaCard() {
+  const [data, setData] = useState<LiaData | null>(null),
+    [pedirFor, setPedirFor] = useState(""),
+    [pedido, setPedido] = useState(""),
+    [busy, setBusy] = useState(""),
+    [note, setNote] = useState(""),
+    [err, setErr] = useState("");
+  useEffect(() => {
+    api<LiaData>("/api/lia-data")
+      .then(setData)
+      .catch((e) =>
+        setErr(e instanceof Error ? e.message : "Indisponível agora."),
+      );
+  }, []);
+  async function pedir(c: LiaContact) {
+    setBusy(c.nome);
+    setNote("");
+    setErr("");
+    try {
+      const j = await api<{ result?: string }>("/api/lia-data", {
+        action: "marca",
+        contact: c.nome,
+        request: pedido.trim(),
+      });
+      setNote(j.result || "Lia enviou o pedido em áudio.");
+      setPedirFor("");
+      setPedido("");
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : "Não foi possível pedir agora.");
+    } finally {
+      setBusy("");
+    }
+  }
+  const byKind: Record<string, LiaContact[]> = {};
+  for (const c of data?.contacts ?? [])
+    (byKind[c.papel || "outro"] ??= []).push(c);
+  const order = ["medico", "exame", "farmacia", "util"];
+  const kinds = [
+    ...order.filter((k) => byKind[k]?.length),
+    ...Object.keys(byKind).filter((k) => !order.includes(k)),
+  ];
+  return (
+    <section className="card">
+      <div className="card-heading">
+        <h2>Agenda do círculo</h2>
+        <Users size={20} />
+      </div>
+      {data === null ? (
+        <p className="muted">Consultando a Lia…</p>
+      ) : (
+        <>
+          {data.family.length > 0 && (
+            <div className="readiness">
+              <span>
+                Família no círculo{" "}
+                <small>{data.family.map((f) => f.name).join(", ")}</small>
+              </span>
+              <strong>
+                {data.family.length}{" "}
+                {data.family.length === 1 ? "pessoa" : "pessoas"}
+              </strong>
+            </div>
+          )}
+          {kinds.length === 0 ? (
+            <p className="muted">
+              Agenda vazia — cadastre contatos pela Lia no WhatsApp
+            </p>
+          ) : (
+            kinds.map((k) => (
+              <div key={k}>
+                <span className="eyebrow">
+                  {(PAPEL_LABEL[k] || k).toUpperCase()}
+                </span>
+                {byKind[k].map((c) => (
+                  <div key={`${c.papel}-${c.nome}`}>
+                    <div className="readiness">
+                      <span>
+                        {c.nome} <small>{c.number}</small>
+                      </span>
+                      <button
+                        className="text-button"
+                        onClick={() => {
+                          setPedirFor(c.nome);
+                          setPedido("");
+                          setNote("");
+                          setErr("");
+                        }}
+                      >
+                        Pedir agendamento
+                      </button>
+                    </div>
+                    {pedirFor === c.nome && (
+                      <div className="agenda-ask">
+                        <textarea
+                          rows={2}
+                          maxLength={500}
+                          value={pedido}
+                          onChange={(e) => setPedido(e.target.value)}
+                          placeholder="Ex.: consulta de rotina sexta de manhã"
+                        />
+                        <div className="button-row">
+                          <button
+                            className="button button-small"
+                            disabled={!!busy || !pedido.trim()}
+                            onClick={() => void pedir(c)}
+                          >
+                            {busy === c.nome ? "Enviando…" : "Confirmar"}
+                          </button>
+                          <button
+                            className="text-button"
+                            onClick={() => setPedirFor("")}
+                          >
+                            Cancelar
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            ))
+          )}
+        </>
+      )}
+      {note && <p className="callout">{note}</p>}
+      {err && (
+        <p role="alert" className="form-error">
+          {err}
+        </p>
       )}
     </section>
   );
