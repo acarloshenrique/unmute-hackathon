@@ -1,4 +1,21 @@
-import { CareApp } from "@/components/care-app";
+import type { Metadata } from "next";
+import { DemoExperience } from "@/components/demo-experience";
+import { allowedOutreachNumbers } from "@/lib/outreach-policy";
+
+export const metadata: Metadata = {
+  title: "Experimente a Lia | CareCircle",
+};
+
+export const dynamic = "force-dynamic";
+
 export default function Page() {
-  return <CareApp view="demo" />;
+  return (
+    <DemoExperience
+      realAvailable={allowedOutreachNumbers() !== null}
+      textAvailable={Boolean(
+        process.env.CARECIRCLE_EVOLUTION_TEXT_URL &&
+        process.env.CARECIRCLE_EVOLUTION_API_KEY,
+      )}
+    />
+  );
 }
