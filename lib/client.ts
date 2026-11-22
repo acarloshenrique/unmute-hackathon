@@ -43,6 +43,8 @@ export type Data = {
   profile: { id: string; display_name: string };
   caregiver: CaregiverProfile;
   can_choose_caregiver: boolean;
+  can_manage_chart: boolean;
+  chart_readers: string[];
   events: CareEvent[];
   checkin_report: FamilyCheckinReport | null;
   tasks: Task[];

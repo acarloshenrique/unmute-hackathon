@@ -33,10 +33,11 @@ import {
   type Routine,
   type Task,
 } from "@/lib/client";
+import { ChartShortcut, FamilyChart } from "./family-chart";
 import { Shell } from "./shell";
 import { VoicePanel } from "./voice-panel";
 import { CaregiverPicker } from "./caregiver-picker";
-type View = "dashboard" | "agenda" | "tasks" | "elder" | "demo";
+type View = "chart" | "dashboard" | "agenda" | "tasks" | "elder" | "demo";
 type Action = (name: string, input: unknown) => Promise<void>;
 function Badge({ status }: { status: string }) {
   return (
@@ -157,6 +158,7 @@ export function CareApp({ view }: { view: View }) {
     }
   };
   const titles: Record<View, string> = {
+    chart: "Prontuário familiar",
     dashboard: "Um olhar para o seu círculo.",
     agenda: "Tempo para estar presente.",
     tasks: "Pequenos gestos. Cuidado compartilhado.",
@@ -200,7 +202,9 @@ export function CareApp({ view }: { view: View }) {
               <p>
                 {view === "elder"
                   ? "Uma conversa, no seu ritmo. Você decide o que compartilhar."
-                  : "Presença nos detalhes que importam. Com a autonomia da Helena."}
+                  : view === "chart"
+                    ? "Acompanhamento de medicamentos, atendimentos e orientações da equipe de cuidado."
+                    : "Presença nos detalhes que importam. Com a autonomia da Helena."}
               </p>
             </div>
             <div className="heading-actions">
@@ -210,17 +214,19 @@ export function CareApp({ view }: { view: View }) {
                 </span>
                 {data.actor.display_name} · fictícia
               </span>
-              {data.actor.role === "relative" && view !== "elder" && (
-                <button
-                  className="button"
-                  onClick={() => {
-                    setEditing(undefined);
-                    setModal(true);
-                  }}
-                >
-                  <Plus size={17} /> Agendar conversa
-                </button>
-              )}
+              {data.actor.role === "relative" &&
+                view !== "elder" &&
+                view !== "chart" && (
+                  <button
+                    className="button"
+                    onClick={() => {
+                      setEditing(undefined);
+                      setModal(true);
+                    }}
+                  >
+                    <Plus size={17} /> Agendar conversa
+                  </button>
+                )}
             </div>
           </div>
           <div className="context-strip">
@@ -229,9 +235,32 @@ export function CareApp({ view }: { view: View }) {
               <span className="muted">· Dados de demonstração</span>
             </span>
             <span>
-              <Clock3 size={15} /> São Paulo · atualização a cada 2 s
+              <Clock3 size={15} /> São Paulo ·{" "}
+              {view === "chart"
+                ? "atualização a cada 8 s"
+                : "atualização a cada 2 s"}
             </span>
           </div>
+          {view === "chart" &&
+            (data.can_manage_chart ? (
+              <FamilyChart
+                key={data.actor.id + data.profile.id}
+                context={data}
+                copilot={<Copilot data={data} act={act} />}
+              />
+            ) : (
+              <section className="card empty">
+                <ShieldCheck />
+                <h2>Acesso ao prontuário</h2>
+                <p>
+                  A pessoa acompanhada escolhe os familiares que podem consultar
+                  e atualizar a ficha.
+                </p>
+                <Link className="text-link" href="/idoso#privacidade">
+                  Ver autorizações
+                </Link>
+              </section>
+            ))}
           {view === "dashboard" && (
             <Dashboard data={data} act={act} schedule={() => setModal(true)} />
           )}{" "}
@@ -506,6 +535,7 @@ function Dashboard({
               <small>Dona Helena</small>
             </div>
           </section>
+          {data.can_manage_chart && <ChartShortcut key={data.actor.id} />}
           <div className="stats-grid">
             <div className="stat">
               <span className="stat-icon">
@@ -592,7 +622,11 @@ function Dashboard({
               }
             />
           )}
-          <Copilot data={data} act={act} />
+          <Copilot
+            key={data.actor.id + String(data.can_manage_chart)}
+            data={data}
+            act={act}
+          />
           <Channels />
           <MedsCard />
           <AgendaCard />
@@ -841,7 +875,13 @@ function MedsCard() {
   return (
     <section className="card">
       <div className="card-heading">
-        <h2>Remédios</h2>
+        <div>
+          <h2>Remédios da Lia · WhatsApp</h2>
+          <small>
+            Estoque e tomadas registrados no canal da Lia. O prontuário mantém
+            os lançamentos feitos pela família.
+          </small>
+        </div>
         <Pill size={20} />
       </div>
       {meds === null ? (
@@ -1350,6 +1390,13 @@ function Copilot({ data, act }: { data: Data; act: Action }) {
           "Como foi o dia da minha mãe?",
           "Tem alguma solicitação pendente?",
           "Quando foi a última conversa?",
+          ...(data.can_manage_chart
+            ? [
+                "Como está o estoque de medicamentos?",
+                "Qual o preparo do próximo exame?",
+                "Qual é o objetivo do plano familiar?",
+              ]
+            : []),
         ].map((q) => (
           <button key={q} disabled={busy} onClick={() => void ask(q)}>
             {q}
@@ -1668,6 +1715,30 @@ function Elder({
                 <span>
                   Permitir compartilhar pedidos e relatos revisados com{" "}
                   {m.display_name}
+                </span>
+              </label>
+            ))}
+          {data.members
+            .filter((m) => m.role === "relative")
+            .map((m) => (
+              <label className="consent-toggle" key={"chart" + m.id}>
+                <input
+                  type="checkbox"
+                  checked={data.chart_readers.includes(m.id)}
+                  onChange={(e) => {
+                    setError("");
+                    void api("/api/prontuario", {
+                      action: "access",
+                      memberId: m.id,
+                      granted: e.target.checked,
+                    })
+                      .then(refresh)
+                      .catch((err) => setError(err.message));
+                  }}
+                />
+                <span>
+                  Permitir que {m.display_name} consulte e atualize meu
+                  prontuário familiar, medicamentos e agenda de saúde
                 </span>
               </label>
             ))}

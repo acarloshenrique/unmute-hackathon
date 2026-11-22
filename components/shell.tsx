@@ -4,6 +4,7 @@ import { usePathname } from "next/navigation";
 import {
   AudioLines,
   CalendarDays,
+  ClipboardList,
   CheckCheck,
   CircleHelp,
   Heart,
@@ -13,6 +14,11 @@ import {
 } from "lucide-react";
 const links = [
   { href: "/familia", label: "Visão do círculo", icon: LayoutDashboard },
+  {
+    href: "/familia/prontuario",
+    label: "Prontuário familiar",
+    icon: ClipboardList,
+  },
   { href: "/familia/agenda", label: "Agenda de conversas", icon: CalendarDays },
   {
     href: "/familia/tarefas",
