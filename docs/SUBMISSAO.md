@@ -17,7 +17,7 @@
 - Repositório: https://github.com/acarloshenrique/unmute-hackathon (público)
 - Demo: https://demo-hermes.taild017e2.ts.net:8443/demo (complementar — o vídeo é a fonte da banca)
 - Versão entregue: commit `2a71194` (main)
-- Vídeo: `carecircle_demo.mp4` (1min53s, narração + interação real)
+- Vídeo: `carecircle_demo.mp4` (1min59s, pitch narrado + interação real; `carecircle_demo_raw.mp4` = sessão integral)
 
 ## Componentes preexistentes e simulações
 
