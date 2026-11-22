@@ -1,7 +1,7 @@
 import { createServer } from "node:http";
 // Expose this allowlisted gateway, never the Next.js application, through a tunnel.
 export const allowedToolPath = (path: string) =>
-  /^\/api\/voice\/tools\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\/prepare-request$/i.test(
+  /^\/api\/voice\/tools\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\/(?:prepare-request|care-context)$/i.test(
     path,
   );
 export function startGateway() {
@@ -41,7 +41,7 @@ export function startGateway() {
     }
   }).listen(3002, "127.0.0.1", () =>
     console.log(
-      "Gateway de ferramenta: 127.0.0.1:3002. Somente POST prepare-request; nenhum login ou painel.",
+      "Gateway de ferramenta: 127.0.0.1:3002. Somente POST prepare-request e care-context; nenhum login ou painel.",
     ),
   );
 }

@@ -50,3 +50,5 @@ export function demoPhone(raw: string): string | null {
     return null;
   return "+" + international;
 }
+
+export const demoPhoneDraftKey = "carecircle-demo-phone-draft";

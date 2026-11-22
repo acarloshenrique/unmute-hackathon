@@ -292,7 +292,9 @@ it("SDK instalado configura pipeline gerenciado sem chave de provedor e com ferr
   expect(wire.advanced_features?.enable_rtm).toBe(true);
   expect(wire.advanced_features?.enable_tools).toBe(true);
   const tools = wire.llm?.tools!;
-  expect(tools).toHaveLength(1);
+  expect(tools).toHaveLength(2);
+  expect(tools[1].function.name).toBe("consultarCuidado");
+  expect(tools[1].server.url).toContain("/care-context");
   expect(tools[0].function.name).toBe("prepareRequest");
   expect(tools[0].server.body?.tool_call_id).toBe("{{tool_call_id}}");
   expect(tools[0].server.url).not.toContain("/llm/");

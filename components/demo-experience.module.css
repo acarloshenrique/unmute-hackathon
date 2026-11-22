@@ -440,3 +440,44 @@
     gap: 4px;
   }
 }
+
+.signature {
+  cursor: pointer;
+  border: 0;
+  min-height: 44px;
+}
+.signature:focus-visible,
+.voiceDialog button:focus-visible {
+  outline: 3px solid #a86419;
+  outline-offset: 3px;
+}
+.voiceDialog {
+  width: min(610px, 94vw);
+  max-height: 88dvh;
+  overflow: auto;
+  padding: 24px;
+  border: 1px solid #c9d7c9;
+  border-radius: 20px;
+  color: #243f35;
+  background: #f8f8f2;
+}
+.voiceDialog::backdrop {
+  background: #102b22a8;
+}
+.voiceDialog > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+.voiceDialog > header h2 {
+  font-size: 1.45rem;
+}
+.voiceDialog > header button {
+  padding: 0.6rem 0.9rem;
+  border-radius: 8px;
+  cursor: pointer;
+}
+.voiceDialog > p {
+  margin: 8px 0 16px;
+}

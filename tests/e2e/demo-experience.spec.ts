@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 
-test("visitante simula canais sem telefone ou envio e abre o painel de Ana", async ({
+test("visitante digita telefone e simula os canais sem envio e abre o painel de Ana", async ({
   page,
 }) => {
   let attempts = 0;
@@ -16,7 +16,8 @@ test("visitante simula canais sem telefone ou envio e abre o painel de Ana", asy
   await expect(
     page.getByRole("radio", { name: "Ligação", exact: true }),
   ).toBeChecked();
-  await expect(page.getByLabel("Seu telefone com DDD")).toHaveCount(0);
+  await expect(page.getByLabel("Seu telefone com DDD")).toBeVisible();
+  await page.getByLabel("Seu telefone com DDD").fill("(11) 98888-0101");
   await expect(
     page.getByText("Modo simulação.", { exact: false }),
   ).toBeVisible();
@@ -75,7 +76,8 @@ test("cenário 2 mantém os papéis e entrega sim, não ou ausência de resposta
   });
   await page.goto("/demo");
   await page.getByText("Café, remédio e jejum", { exact: true }).click();
-  await page.getByRole("link", { name: "Abrir cenário de jejum" }).click();
+  await page.getByLabel("Seu telefone com DDD").fill("(11) 98888-0101");
+  await page.getByRole("button", { name: "Abrir cenário de jejum" }).click();
   for (const [choice, expected] of [
     ["Não", "a Ana respondeu que não"],
     ["Sim", "a Ana disse que sim"],
@@ -85,6 +87,9 @@ test("cenário 2 mantém os papéis e entrega sim, não ou ausência de resposta
     await page
       .getByRole("button", { name: "Usar a pergunta de Helena" })
       .click();
+    await expect(
+      page.getByLabel("Telefone com DDD para receber como Ana"),
+    ).toHaveValue("+5511988880101");
     await page
       .getByRole("button", { name: "Simular ligação para Ana" })
       .click();
@@ -95,4 +100,20 @@ test("cenário 2 mantém os papéis e entrega sim, não ou ausência de resposta
     await page.getByRole("button", { name: "Recomeçar o cenário" }).click();
   }
   expect(contact).toBe(0);
+});
+
+test("o botão da foto abre a conversa no perfil de Helena e devolve o foco ao fechar", async ({
+  page,
+}) => {
+  await page.goto("/demo");
+  const open = page.getByRole("button", { name: "Conversar com a Lia" });
+  await open.click();
+  const dialog = page.getByRole("dialog");
+  await expect(dialog).toBeVisible();
+  await expect(dialog.getByText(/Perfil de Helena/)).toBeVisible();
+  await expect(
+    dialog.getByText("Microfone desligado", { exact: true }),
+  ).toBeVisible();
+  await dialog.getByRole("button", { name: "Fechar" }).click();
+  await expect(dialog).toHaveCount(0);
 });

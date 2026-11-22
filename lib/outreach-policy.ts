@@ -14,3 +14,11 @@ export function allowedOutreachNumbers(): ReadonlySet<string> | null {
   }
   return numbers;
 }
+
+/** Enable visitor-entered destinations for the canonical demo scenarios only. */
+export function visitorDialingEnabled() {
+  return (
+    process.env.CARECIRCLE_OUTREACH_ENABLED === "true" &&
+    process.env.CARECIRCLE_VISITOR_CONTACT === "true"
+  );
+}
