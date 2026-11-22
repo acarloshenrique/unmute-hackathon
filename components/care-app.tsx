@@ -718,17 +718,18 @@ function MedsCard() {
     [busy, setBusy] = useState(""),
     [note, setNote] = useState(""),
     [err, setErr] = useState("");
-  const load = useCallback(async () => {
-    try {
-      const j = await api<LiaData>("/api/lia-data");
-      setMeds(j.meds);
-      setErr("");
-    } catch (e) {
-      setErr(
-        e instanceof Error ? e.message : "Não consegui consultar a Lia agora.",
-      );
-    }
-  }, []);
+  const load = useCallback(
+    () => api<LiaData>("/api/lia-data").then(
+      data => {
+        setMeds(data.meds);
+        setErr("");
+      },
+      (error: unknown) => {
+        setErr(error instanceof Error ? error.message : "Não consegui consultar a Lia agora.");
+      },
+    ),
+    [],
+  );
   useEffect(() => {
     void load();
   }, [load]);
