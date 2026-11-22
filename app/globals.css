@@ -356,6 +356,9 @@ code {
   border-radius: 5px;
   white-space: nowrap;
 }
+p.soft-label {
+  white-space: normal;
+}
 .card {
   background: #fff;
   border: 1px solid var(--line);
