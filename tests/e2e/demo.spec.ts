@@ -96,7 +96,7 @@ test("jornada persistida: agenda → convite → consentimento → tarefa → ac
   await expect(report).toContainText("Pedido compartilhado com você");
   await expect(report).toContainText("Status: Aceita");
   await expect(report).toContainText("SIMULAÇÃO");
-  await expect(report).toContainText("não altera o plano de acompanhamento");
+  await expect(report).toContainText("nem altera o plano de acompanhamento");
   await page.reload();
   await expect(report).toContainText("Status: Aceita");
   const saved = await (await page.request.get("/api/snapshot")).json();
