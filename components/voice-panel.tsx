@@ -12,13 +12,23 @@ import {
 import type { IAgoraRTCClient, IMicrophoneAudioTrack } from "agora-rtc-sdk-ng";
 import type { RTMClient } from "agora-rtm";
 import type { AgoraVoiceAI } from "agora-agent-client-toolkit";
-import { api } from "@/lib/client";
+import { api, type Data } from "@/lib/client";
+import {
+  caregiverProfile,
+  type CaregiverId,
+  type CaregiverProfile,
+} from "@/lib/caregivers";
 import { makeCleanup } from "@/lib/voice-cleanup";
-import { voiceFailure, type VoiceStage } from "@/lib/voice-feedback";
+import {
+  agentUiState,
+  voiceFailure,
+  type VoiceStage,
+} from "@/lib/voice-feedback";
 type State =
   | "idle"
   | "requesting_permission"
   | "connecting"
+  | "connected"
   | "listening"
   | "thinking"
   | "speaking"
@@ -30,9 +40,10 @@ const stateText: Record<State, string> = {
   idle: "Pronta para conversar",
   requesting_permission: "Aguardando permissão do microfone",
   connecting: "Conectando à Agora…",
-  listening: "Lia está ouvindo",
-  thinking: "Lia está preparando a resposta",
-  speaking: "Lia está falando",
+  connected: "Conversa conectada",
+  listening: "está ouvindo",
+  thinking: "está preparando a resposta",
+  speaking: "está falando",
   interrupted: "Você interrompeu a resposta",
   reconnecting: "Reconectando à Agora…",
   error: "A conversa precisa de atenção",
@@ -40,6 +51,7 @@ const stateText: Record<State, string> = {
 };
 type Session = {
   session_id: string;
+  caregiver: CaregiverProfile;
   app_id: string;
   channel: string;
   uid: number;
@@ -50,14 +62,23 @@ type Session = {
 export function VoicePanel({
   configured,
   consented,
+  caregiver,
+  invitation,
   onChange,
 }: {
   configured: boolean;
   consented: boolean;
+  caregiver: CaregiverProfile;
+  invitation?: Data["notifications"][number];
   onChange: () => Promise<void>;
 }) {
   const [state, setState] = useState<State>("idle"),
     [error, setError] = useState(""),
+    [sessionCaregiver, setSessionCaregiver] = useState<CaregiverId | null>(
+      null,
+    ),
+    [responding, setResponding] = useState(false),
+    [invitationNotice, setInvitationNotice] = useState(""),
     [muted, setMuted] = useState(false),
     [caption, setCaption] = useState(""),
     [joined, setJoined] = useState(false),
@@ -89,6 +110,7 @@ export function VoicePanel({
     if (alive.current) {
       setJoined(false);
       setCaption("");
+      setSessionCaregiver(null);
       setMuted(false);
       setMicrophone("off");
       setMicrophoneLevel(0);
@@ -134,6 +156,9 @@ export function VoicePanel({
     if (busy.current) return;
     busy.current = true;
     cancelled.current = false;
+    setResponding(true);
+    setInvitationNotice("");
+    setSessionCaregiver(caregiver.id);
     const owned = refs.current;
     let stage: VoiceStage = "microphone";
     let reportedError = "";
@@ -169,6 +194,16 @@ export function VoicePanel({
         setHasSession(false);
         owned.cleanup = undefined;
       }
+      if (invitation) {
+        stage = "invitation";
+        await api("/api/actions/respond_invitation", {
+          notification_id: invitation.id,
+          accepted: true,
+        });
+      }
+      stage = "microphone";
+      ensureActive();
+      setResponding(false);
       setState("requesting_permission");
       const rtcModule = await import("agora-rtc-sdk-ng"),
         RTC = rtcModule.default;
@@ -176,7 +211,7 @@ export function VoicePanel({
       RTC.onAutoplayFailed = () => {
         if (alive.current)
           setError(
-            "O navegador bloqueou a saída de áudio. Toque em “Ouvir a Lia” para liberar.",
+            "O navegador bloqueou a saída de áudio. Toque em Ouvir a assistente para liberar.",
           );
       };
       const mic = await RTC.createMicrophoneAudioTrack();
@@ -230,7 +265,10 @@ export function VoicePanel({
           );
       });
       stage = "agent";
-      const session = await api<Session>("/api/voice/start", {});
+      const session = await api<Session>("/api/voice/start", {
+        invitation_id: invitation?.id,
+      });
+      if (alive.current) setSessionCaregiver(session.caregiver.id);
       owned.session = session;
       if (alive.current) setHasSession(true);
       if (!alive.current || cancelled.current) {
@@ -253,7 +291,10 @@ export function VoicePanel({
           setJoined(false);
           setState("disconnected");
         }
-        if (current === "CONNECTED") setState("connecting");
+        if (current === "CONNECTED")
+          setState((previous) =>
+            previous === "reconnecting" ? "connected" : previous,
+          );
       });
       rtc.on("user-joined", (user) => {
         if (user.uid === session.agent_uid && alive.current) setJoined(true);
@@ -261,7 +302,7 @@ export function VoicePanel({
       rtc.on("user-left", (user) => {
         if (user.uid === session.agent_uid && alive.current) {
           fail(
-            "Lia saiu do canal. O microfone foi desligado. Tente novamente.",
+            "A assistente saiu do canal. O microfone foi desligado. Tente novamente.",
           );
         }
       });
@@ -274,7 +315,7 @@ export function VoicePanel({
           }
         } catch {
           if (alive.current)
-            setError("Não foi possível reproduzir o áudio da Lia.");
+            setError("Não foi possível reproduzir o áudio da assistente.");
         }
       });
       stage = "rtc";
@@ -296,17 +337,14 @@ export function VoicePanel({
       owned.ai = ai;
       ensureActive();
       ai.on(toolkit.AgoraVoiceAIEvents.AGENT_STATE_CHANGED, (_, event) => {
-        if (
-          alive.current &&
-          ["listening", "thinking", "speaking", "idle"].includes(event.state)
-        )
-          setState(event.state as State);
+        const next = agentUiState(event.state);
+        if (alive.current && next) setState(next);
       });
       ai.on(toolkit.AgoraVoiceAIEvents.TRANSCRIPT_UPDATED, (transcript) => {
         const last = transcript[transcript.length - 1];
         if (last && alive.current) {
           setCaption(
-            `${String(last.uid) === String(session.agent_uid) ? "Lia" : "Você"}: ${last.text || ""}`,
+            `${String(last.uid) === String(session.agent_uid) ? session.caregiver.name : "Você"}: ${last.text || ""}`,
           );
           if (last.status === toolkit.TurnStatus.INTERRUPTED)
             setState("interrupted");
@@ -321,6 +359,9 @@ export function VoicePanel({
       await rtc.publish([mic]);
       ensureActive();
       setMicrophone("published");
+      setState((previous) =>
+        previous === "connecting" ? "connected" : previous,
+      );
       try {
         setDevices(await RTC.getPlaybackDevices(true));
       } catch {
@@ -331,8 +372,10 @@ export function VoicePanel({
     } catch (err) {
       clearInterval(owned.meter);
       const failures = await owned.cleanup?.();
-      if (alive.current && !failures?.includes("stopAgent"))
+      if (alive.current && !failures?.includes("stopAgent")) {
         setHasSession(false);
+        setSessionCaregiver(null);
+      }
       // Re-run local teardown for resources acquired after cancellation.
       if (cancelled.current || !alive.current) {
         owned.mic?.stop();
@@ -360,10 +403,36 @@ export function VoicePanel({
       }
     } finally {
       busy.current = false;
+      if (alive.current) setResponding(false);
     }
   }
+  async function decline() {
+    if (!invitation || busy.current) return;
+    busy.current = true;
+    setResponding(true);
+    setError("");
+    try {
+      await api("/api/actions/respond_invitation", {
+        notification_id: invitation.id,
+        accepted: false,
+      });
+      setInvitationNotice("Tudo bem. A conversa fica para outra hora.");
+      await onChange();
+    } catch (e) {
+      setError(
+        e instanceof Error
+          ? e.message
+          : "Não foi possível responder ao convite.",
+      );
+    } finally {
+      busy.current = false;
+      if (alive.current) setResponding(false);
+    }
+  }
+  const speaker = caregiverProfile(sessionCaregiver || caregiver.id);
   const active = [
     "connecting",
+    "connected",
     "listening",
     "thinking",
     "speaking",
@@ -374,7 +443,9 @@ export function VoicePanel({
   return (
     <section className="voice-card">
       <div className="voice-top">
-        <span className="eyebrow">UMA CONVERSA COM LIA</span>
+        <span className="eyebrow">
+          UMA CONVERSA COM {speaker.name.toUpperCase()}
+        </span>
         <span className="soft-label">
           {joined ? "AGENTE NO CANAL AGORA" : "VOZ AO VIVO · AGORA"}
         </span>
@@ -384,7 +455,21 @@ export function VoicePanel({
           <AudioLines size={58} strokeWidth={1.3} />
         </div>
       </div>
-      <h2>{stateText[state]}</h2>
+      <h2>
+        {["listening", "thinking", "speaking"].includes(state)
+          ? `${speaker.name} ${stateText[state]}`
+          : stateText[state]}
+      </h2>
+      <p>
+        {speaker.name} · {speaker.style}
+      </p>
+      {invitation && !active && (
+        <div className="voice-invitation">
+          <p>{invitation.message}</p>
+          <small>Você pode conversar agora ou deixar para outra hora.</small>
+        </div>
+      )}
+      {invitationNotice && <p role="status">{invitationNotice}</p>}
       <p aria-live="polite" className="voice-status">
         {joined
           ? "Conexão do agente observada no canal."
@@ -414,13 +499,29 @@ export function VoicePanel({
       </div>
       <div className="voice-actions">
         {!active ? (
-          <button
-            className="button talk-button"
-            disabled={!configured || !consented}
-            onClick={() => void start()}
-          >
-            <Mic size={23} /> Conversar com Lia
-          </button>
+          <>
+            <button
+              className="button talk-button"
+              disabled={!configured || !consented || responding}
+              onClick={() => void start()}
+            >
+              <Mic size={23} />{" "}
+              {responding
+                ? "Aguarde…"
+                : invitation
+                  ? "Conversar"
+                  : `Conversar com ${speaker.name}`}
+            </button>
+            {invitation && (
+              <button
+                className="button button-light"
+                disabled={responding}
+                onClick={() => void decline()}
+              >
+                Agora não
+              </button>
+            )}
+          </>
         ) : (
           <>
             <button
@@ -490,7 +591,7 @@ export function VoicePanel({
               refs.current.rtc?.remoteUsers.forEach((u) => u.audioTrack?.play())
             }
           >
-            <Volume2 size={17} /> Ouvir a Lia
+            <Volume2 size={17} /> Ouvir a assistente
           </button>
           {devices.length > 0 && (
             <label className="audio-output">

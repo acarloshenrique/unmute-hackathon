@@ -1983,3 +1983,68 @@ details.card {
     scroll-behavior: auto !important;
   }
 }
+
+.caregiver-picker h2 {
+  font-size: 1.25rem;
+  margin: 8px 0;
+}
+.caregiver-picker fieldset {
+  border: 0;
+  padding: 0;
+  margin: 18px 0;
+  min-width: 0;
+}
+.caregiver-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 12px;
+  margin-top: 10px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  cursor: pointer;
+}
+.caregiver-option:has(input:checked) {
+  border-color: var(--green);
+  background: var(--sage);
+}
+.caregiver-option input {
+  accent-color: var(--green);
+  width: 19px;
+  height: 19px;
+  flex-shrink: 0;
+}
+.caregiver-option strong,
+.caregiver-option small {
+  display: block;
+}
+.caregiver-option small {
+  color: var(--muted);
+  font-size: 0.84rem;
+  line-height: 1.45;
+  margin-top: 4px;
+}
+.caregiver-option:focus-within {
+  outline: 3px solid var(--teal);
+  outline-offset: 2px;
+}
+.caregiver-active {
+  margin-left: auto;
+  color: var(--green);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+.caregiver-picker fieldset:disabled {
+  opacity: 0.7;
+}
+.voice-invitation {
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--sage);
+  padding: 14px;
+  margin: 16px 0;
+}
+.voice-invitation p {
+  font-size: 1.15rem;
+  margin: 0 0 8px;
+}

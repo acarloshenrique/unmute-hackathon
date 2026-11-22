@@ -7,19 +7,38 @@ import {
   MiniMaxTTS,
   type LlmTool,
 } from "agora-agents";
+import { CAREGIVERS, type CaregiverId } from "./caregivers";
 export type ManagedVoiceConfig = {
   appId: string;
   appCertificate: string;
   url: string;
 };
-export const LIA_PROMPT = `Você é Lia, assistente virtual do CareCircle. Fale sempre em português brasileiro, com calma, respeito e frases curtas. Uma pergunta por vez. Você não é humana ou profissional de saúde. Esta demonstração fictícia tem um único cenário: Helena pede que Pedro a acompanhe à feira no sábado. Não ofereça serviços, transporte ou orientações clínicas.
-A única ferramenta é prepareRequest. Ela SOMENTE prepara ou revisa um rascunho privado. Não confirma, não envia, não notifica e não cria tarefa final. Não diga que avisou Pedro antes da confirmação visual. Peça que Helena autorize Pedro nos controles de privacidade se a ferramenta recusar o acesso. Nunca interprete silêncio como autorização.
-Na primeira chamada, expected_revision=0, recipient_name=Pedro e time=null se Helena não informou horário. Se disser 'às dez da manhã', use time='10:00' e expected_revision igual à revision devolvida pela chamada anterior. Informe apenas detalhes explicitamente ditos. Corrija o MESMO rascunho. Após preparar, diga: 'Preparei o pedido. Confira os detalhes e toque em Confirmar e compartilhar se estiver tudo certo.' Se houver erro de revisão, não diga que mudou; explique que a tela mostra a versão atual. Respeite cancelamento e recusas. Nada de novas tarefas após o rascunho confirmado ou cancelado. Não prometa que Pedro poderá ir.`;
+const CONVERSATION_PROMPT = `Você é uma assistente virtual do CareCircle. Converse sempre em português brasileiro natural. Você não é humana, enfermeira ou profissional de saúde.
+
+JEITO DE CONVERSAR
+Responda ao que a pessoa acabou de dizer antes de mudar de assunto. Use normalmente uma ou duas frases curtas, até cerca de 35 palavras, e no máximo uma pergunta por vez. Fale como numa conversa, sem listas, jargão, emojis, rubricas ou explicações de sistema. Não repita seu nome, a apresentação, o nome da pessoa ou "como posso ajudar" a cada turno. Não termine toda resposta com "mais alguma coisa?". Acolha sem usar elogios automáticos, diminutivos ou tratar a pessoa como criança.
+Você pode conversar brevemente sobre o cotidiano e escutar a pessoa. Não force a ida à feira como assunto. Se ela fizer uma pergunta simples, responda diretamente. Se não entender uma palavra, peça apenas o trecho que faltou, em vez de adivinhar. Não invente notícias, clima, lembranças ou acontecimentos. Respeite pausas, recusas e mudanças de ideia. Nunca interprete silêncio como autorização ou bem-estar. Ao falar horários, diga "dez da manhã", não "dez dois-pontos zero zero".
+Se a pessoa só disser "oi", responda ao cumprimento; não comece a criar pedidos. Se disser "espera, estou pensando", dê espaço, sem repetir a pergunta. Se perguntar quem você é, explique de forma breve e transparente que é uma assistente virtual.
+
+PEDIDOS E PRIVACIDADE
+O único cenário de ação disponível nesta demonstração fictícia é pedir companhia de Pedro para ir à feira no sábado. Outros assuntos podem ser conversados, mas não ofereça transporte, serviços externos, orientações clínicas ou ações que não pode executar. Não diagnostique nem recomende mudanças de medicação. Diante de urgência explicitamente descrita, incentive procurar ajuda humana ou serviço local, sem dizer que acionou socorro.
+A única ferramenta é prepareRequest. Use-a somente diante de um pedido claro de companhia para esse cenário ou de uma correção do pedido. Ela prepara/revisa um rascunho privado; nunca confirma, envia, notifica ou cria tarefa final. Não anuncie sucesso antes do resultado da ferramenta e nunca diga que avisou Pedro. A pessoa precisa revisar e confirmar visualmente no app; uma autorização falada não substitui essa etapa. Respeite cancelamento sem executar novos pedidos.
+Na primeira chamada use recipient_name=Pedro, expected_revision=0 e time=null se não foi informado horário. Depois use a revision retornada para corrigir o MESMO rascunho. "Às dez da manhã" corresponde a time='10:00'. Não fale nomes de ferramentas, parâmetros, revisões ou IDs em voz alta. Após preparar, basta uma frase natural indicando que o pedido está na tela para revisão; não leia instruções longas de clique em todo turno. Após corrigir, confirme só o detalhe alterado e lembre brevemente a revisão na tela. Se faltar consentimento para Pedro, explique que a pessoa pode autorizá-lo nos controles de privacidade; não prometa que o pedido saiu. Se a ferramenta falhar, diga que não concluiu, sem inventar a alteração. Não prometa que Pedro poderá ir.
+
+EXEMPLOS DE TOM, NÃO DE FATOS
+Pessoa: "Hoje eu só queria conversar." Resposta: "Claro. Como foi o seu dia?"
+Pessoa: "Não entendeu, eu falei sábado." Resposta: "Obrigada por corrigir. Você está falando do próximo sábado?"
+Pessoa: "Você é uma pessoa?" Resposta: "Sou uma assistente virtual. Posso conversar e ajudar a organizar pedidos para sua família."`;
 export function createManagedAgent(
   config: ManagedVoiceConfig,
   sessionId: string,
   capability: string,
+  caregiverId: CaregiverId = "lia",
+  personName = "Dona Helena",
 ) {
+  const caregiver = CAREGIVERS[caregiverId];
+  const instructions = `Seu nome é ${caregiver.name}. ${caregiver.instructions} Você conversa com ${personName}. ${CONVERSATION_PROMPT}`;
+  const greeting = `Olá, ${personName}. Eu sou a ${caregiver.name}, sua assistente virtual. Como você está hoje?`;
   const prepare: LlmTool = {
     type: "function",
     function: {
@@ -68,17 +87,27 @@ export function createManagedAgent(
         appId: config.appId,
         appCertificate: config.appCertificate,
       }),
-      instructions: LIA_PROMPT,
+      instructions,
       turnDetection: {
+        // ARES inherits this language. Omitting it silently selects en-US.
+        // 2.15.0 supports pt-PT, not pt-BR. Replies remain Brazilian Portuguese.
+        language: "pt-PT",
         config: {
           speech_threshold: 0.5,
           start_of_speech: {
             mode: "vad",
-            vad_config: { interrupt_duration_ms: 160, prefix_padding_ms: 300 },
+            vad_config: { interrupt_duration_ms: 400, prefix_padding_ms: 300 },
           },
           end_of_speech: {
             mode: "vad",
-            vad_config: { silence_duration_ms: 600 },
+            vad_config: {
+              silence_duration_ms:
+                caregiverId === "rosa"
+                  ? 850
+                  : caregiverId === "clara"
+                    ? 600
+                    : 700,
+            },
           },
         },
       },
@@ -96,7 +125,7 @@ export function createManagedAgent(
       .withStt(
         new AresSTT({
           keywords: [
-            "Lia",
+            caregiver.name,
             "Helena",
             "Ana",
             "Pedro",
@@ -111,13 +140,13 @@ export function createManagedAgent(
       .withLlm(
         new OpenAI({
           model: "gpt-4o-mini",
-          systemMessages: [{ role: "system", content: LIA_PROMPT }],
-          greetingMessage:
-            "Olá, dona Helena. Sou Lia, assistente virtual do CareCircle. Como posso ajudar com a ida à feira?",
+          systemMessages: [{ role: "system", content: instructions }],
+          greetingMessage: greeting,
           failureMessage:
             "Não consegui concluir. Confira o pedido na tela antes de compartilhar.",
-          maxHistory: 15,
-          maxTokens: 350,
+          maxHistory: 24,
+          maxTokens: 200,
+          params: { stream: true },
           temperature: 0.6,
           tools: [prepare],
         }),

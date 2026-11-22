@@ -4,6 +4,18 @@
 
 CareCircle transforma conversas autorizadas em coordenação familiar. Helena, Ana e Pedro são pessoas fictícias. Cenário único desta demo: Helena pede companhia de Pedro para ir à feira no sábado, corrige para 10h, revisa na tela e confirma. Somente então Pedro recebe um cartão e pode tocar **Posso ajudar**.
 
+## Escolher cuidadora virtual
+
+No painel `/familia`, o familiar autorizado escolhe **Lia · Acolhedora** (padrão), **Clara · Direta** ou **Rosa · Paciente** para a pessoa acompanhada. A escolha é salva no servidor e persiste após recarregar. Requer vínculo com a família e autorização `family_updates` vigente daquela pessoa; a preferência nunca concede ou modifica consentimentos.
+
+Todos usam o **mesmo timbre MiniMax já configurado**. Só mudam nome e instruções de estilo na próxima sessão Agora. Sessões ativas mantêm o nome e o estilo com que começaram. Convites pendentes refletem a escolha atual.
+
+Na tela `/idoso` não há seletor: o convite informa o nome e oferece **Conversar** ou **Agora não**. O microfone só é solicitado depois do aceite; recusar não liga áudio. Aceitar conversar não autoriza compartilhar resumo ou tarefa: a revisão e a confirmação explícita continuam obrigatórias.
+
+SQLite cria a tabela aditiva `caregiver_preferences` no primeiro acesso após reiniciar, preservando os dados existentes; ausência de escolha significa Lia. Para a migração futura PostgreSQL, aplicar `migrations/postgres-caregiver-preferences.sql` após a base existente (não executado neste ambiente).
+
+[Validação e roteiro desta funcionalidade](docs/caregiver-profiles.md). Nenhuma dependência, chave ou configuração OpenAI Realtime foi acrescentada.
+
 ## Caminho de voz atual
 
 Microfone → Agora RTC → **Conversational AI gerenciado: Agora ARES → GPT-4o-mini → MiniMax Speech 2.6 Turbo** → Agora RTC → áudio da Lia.
@@ -16,6 +28,11 @@ Reconhecimento por ARES com palavras-chave do cenário, prompt em pt-BR e voz `P
 
 O copilot **textual** existente pode continuar usando `OPENAI_API_KEY`/`OPENAI_MODEL`; sem API disponível, consulta os registros e identifica o modo sem IA. Essa chave não participa da voz.
 
+### Ajuste de conversa e idioma
+O ARES agora recebe idioma português explícito. No SDK instalado, omitir o idioma enviava `en-US`; o enum aceita `pt-PT`, não `pt-BR`. As respostas seguem instruções em português brasileiro. Reconhecimento do sotaque brasileiro e ritmo em chamada humana ainda precisam de validação. A saudação não força a feira, as respostas são curtas e em streaming, e a janela de interrupção evita disparos tão curtos quanto antes. Modelos e timbre foram mantidos.
+
+[Resultados e limites do ajuste de conversa](docs/voice-conversation-quality.md): 65 unitários, 6 E2E e três respostas reais a textos fictícios pelo agente Agora. Isso não equivale a validar áudio humano.
+
 ## Ferramenta, consentimento e persistência
 
 `prepareRequest` fica em `llm.tools`, habilitada por `withTools(true)`. A Agora chama apenas POST `/api/voice/tools/{sessionId}/prepare-request`.
@@ -27,7 +44,7 @@ O copilot **textual** existente pode continuar usando `OPENAI_API_KEY`/`OPENAI_M
 - Confirmação e tarefa são idempotentes; repetição ou clique duplo não duplicam cartão ou notificação.
 - Cancelar não compartilha. Pedro só aceita tarefas do círculo autorizado.
 
-SQLite persistente, regras de autorização e tabelas existentes foram mantidos. Nenhuma migração de banco foi adicionada. Não persistimos áudio bruto ou transcrições integrais. CareCircle não diagnostica, não monitora clinicamente e não interpreta silêncio como bem-estar ou autorização.
+SQLite persistente, regras de autorização e tabelas existentes foram mantidos. A funcionalidade de estilos acrescenta somente a tabela de preferências por pessoa; as tabelas e regras de compartilhamento existentes são preservadas. Não persistimos áudio bruto ou transcrições integrais. CareCircle não diagnostica, não monitora clinicamente e não interpreta silêncio como bem-estar ou autorização.
 
 ## Execução local
 
@@ -63,7 +80,7 @@ Use perfis separados de navegador para não compartilhar o cookie de identidade.
 
 1. Como Helena em `/demo`, abra `/idoso`. Autorize convites e compartilhamento com Pedro.
 2. Como Pedro, abra `/familia/tarefas`: zero tarefas desse pedido.
-3. Helena toca **Conversar com Lia**, permite o microfone e diz: “Lia, pede pro Pedro me acompanhar à feira sábado.”
+3. Helena toca **Conversar** no convite (ou **Conversar com Lia** sem convite), permite o microfone e diz: “Lia, pede pro Pedro me acompanhar à feira sábado.”
 4. Ouça a resposta em português e observe a proposta. Diga: “Às dez da manhã”. Confira 10:00 na revisão atual; Pedro continua sem cartão.
 5. Confirme na tela. Pedro recebe um cartão, toca **Posso ajudar** e recarrega: aceite persistido.
 6. Em outra sessão, cancele a proposta: nenhum cartão. Encerre e confira o indicador de microfone do navegador.

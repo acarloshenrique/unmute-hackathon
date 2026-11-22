@@ -32,6 +32,7 @@ import {
 } from "@/lib/client";
 import { Shell } from "./shell";
 import { VoicePanel } from "./voice-panel";
+import { CaregiverPicker } from "./caregiver-picker";
 type View = "dashboard" | "agenda" | "tasks" | "elder" | "demo";
 type Action = (name: string, input: unknown) => Promise<void>;
 function Badge({ status }: { status: string }) {
@@ -354,7 +355,7 @@ export function CareApp({ view }: { view: View }) {
                       Abrir painel da família
                     </Link>
                     <Link className="text-link" href="/idoso">
-                      Abrir conversa com Lia
+                      Abrir conversa com {data.caregiver.name}
                     </Link>
                   </div>
                 </div>
@@ -574,6 +575,17 @@ function Dashboard({
           </section>
         </div>
         <aside className="dashboard-rail">
+          {data.actor.role === "relative" && (
+            <CaregiverPicker
+              data={data}
+              save={(caregiver_id) =>
+                act("select_caregiver", {
+                  care_profile_id: data.profile.id,
+                  caregiver_id,
+                })
+              }
+            />
+          )}
           <Copilot data={data} act={act} />
           <section className="card">
             <div className="card-heading">
@@ -828,7 +840,9 @@ function ScheduleModal({
           Título
           <input
             name="title"
-            defaultValue={existing?.title || "Uma conversa com Lia"}
+            defaultValue={
+              existing?.title || `Uma conversa com ${data.caregiver.name}`
+            }
             required
             maxLength={160}
           />
@@ -856,7 +870,7 @@ function ScheduleModal({
           </label>
         )}
         <label>
-          O que Lia deve perguntar?
+          O que {data.caregiver.name} deve perguntar?
           <textarea
             name="prompt"
             defaultValue={
@@ -1049,22 +1063,13 @@ function Elder({
               : "revoked"
           }
           configured={data.agora_configured}
+          caregiver={data.caregiver}
+          invitation={data.notifications.find(
+            (n) => n.type === "invitation" && n.status === "delivered",
+          )}
           consented={data.consents.some((c) => c.scope === "checkins")}
           onChange={refresh}
         />
-        {data.notifications
-          .filter((n) => n.type === "invitation")
-          .slice(0, 1)
-          .map((n) => (
-            <div className="invitation card" key={n.id}>
-              <Bell />
-              <div>
-                <strong>Um convite para você</strong>
-                <p>{n.message}</p>
-                <small>Entre na conversa quando quiser.</small>
-              </div>
-            </div>
-          ))}
         {data.proposals.length > 0 && (
           <section className="card proposals">
             <span className="eyebrow">VOCÊ DECIDE</span>
@@ -1224,7 +1229,9 @@ function Elder({
                 }).catch(() => {})
               }
             />
-            <span>Quero receber convites para conversar com Lia</span>
+            <span>
+              Quero receber convites para conversar com {data.caregiver.name}
+            </span>
           </label>
           {data.members
             .filter((m) => m.role === "relative")
@@ -1251,8 +1258,8 @@ function Elder({
               </label>
             ))}
           <p className="privacy-boundary">
-            Lia é uma assistente virtual. Não realiza diagnóstico,
-            aconselhamento médico ou monitoramento de emergências.
+            {data.caregiver.name} é uma assistente virtual. Não realiza
+            diagnóstico, aconselhamento médico ou monitoramento de emergências.
           </p>
         </section>
         <ManualRequest data={data} refresh={refresh} />

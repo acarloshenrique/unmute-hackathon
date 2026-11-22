@@ -1,3 +1,4 @@
+import type { CaregiverProfile } from "./caregivers";
 export type Item = { label: string; quantity?: string | null };
 export type CareEvent = {
   id: string;
@@ -39,6 +40,8 @@ export type Proposal = {
 export type Data = {
   actor: { id: string; display_name: string; role: string };
   profile: { id: string; display_name: string };
+  caregiver: CaregiverProfile;
+  can_choose_caregiver: boolean;
   events: CareEvent[];
   tasks: Task[];
   routines: Routine[];
@@ -53,6 +56,8 @@ export type Data = {
   notifications: {
     id: string;
     message: string;
+    status: string;
+    read_at: string | null;
     type: string;
     created_at: string;
   }[];

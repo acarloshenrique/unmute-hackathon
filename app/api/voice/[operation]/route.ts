@@ -15,7 +15,11 @@ export async function POST(
     const op = (await params).operation;
     if (op === "start") {
       throttle(actor.id, "voice_start", 4);
-      return Response.json(await startVoice(actor));
+      const d = z
+        .object({ invitation_id: z.string().uuid().optional() })
+        .strict()
+        .parse(await body(req));
+      return Response.json(await startVoice(actor, d.invitation_id));
     }
     if (op === "stop") {
       const d = z

@@ -1,3 +1,7 @@
+> Atualização de conversa: check completo aprovado, 65 unitários + 6 E2E (71). Três respostas reais a texto fictício e transporte RTC verificados; qualidade com fala humana pendente. Ver [relatório](voice-conversation-quality.md).
+
+> Atualização de perfis de cuidadora virtual: `npm run check` aprovado, 63 unitários e 6 E2E aprovados (69 no total). Conversa humana com Rosa ainda pendente. Evidências e limites em [caregiver-profiles.md](caregiver-profiles.md).
+
 > Relatório histórico anterior à migração de voz. Credenciais/gateway já estão configurados localmente; a voz atual usa Agora gerenciada, sem chave própria OpenAI. Consulte [validação atual](managed-voice-validation.md) e [arquitetura](architecture.md) para resultados e limites vigentes.
 
 # Relatório de validação · 21/11/2026

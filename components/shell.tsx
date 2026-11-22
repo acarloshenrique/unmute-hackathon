@@ -19,7 +19,7 @@ const links = [
     label: "Tarefas compartilhadas",
     icon: CheckCheck,
   },
-  { href: "/idoso", label: "Conversar com Lia", icon: AudioLines },
+  { href: "/idoso", label: "Conversar com a assistente", icon: AudioLines },
   { href: "/demo", label: "Sala de demonstração", icon: Play },
 ];
 export function Shell({ children }: { children: React.ReactNode }) {

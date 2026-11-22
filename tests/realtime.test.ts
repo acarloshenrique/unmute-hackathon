@@ -278,6 +278,8 @@ it("SDK instalado configura pipeline gerenciado sem chave de provedor e com ferr
   });
   expect(wire.mllm).toBeUndefined();
   expect(wire.asr?.vendor).toBe("ares");
+  expect(wire.asr?.language).toBe("pt-PT");
+  expect(wire.llm?.params?.stream).toBe(true);
   expect(wire.asr?.keywords).toContain("feira");
   expect(wire.advanced_features?.enable_sal).toBe(true);
   expect(wire.sal?.sal_mode).toBe("locking");

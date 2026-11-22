@@ -1,6 +1,6 @@
 // Inspect provider errors transiently; expose only fixed, safe messages.
 export type VoiceStage =
-  "microphone" | "agent" | "rtm" | "rtc" | "toolkit" | "publish";
+  "invitation" | "microphone" | "agent" | "rtm" | "rtc" | "toolkit" | "publish";
 export function voiceFailure(error: unknown, stage: VoiceStage): string {
   const value =
     error && typeof error === "object"
@@ -19,6 +19,8 @@ export function voiceFailure(error: unknown, stage: VoiceStage): string {
   if (/notreadableerror|track_start_error/.test(signature))
     return "Não foi possível abrir o microfone. Confira o dispositivo de entrada e se outro aplicativo está usando-o.";
   const messages: Record<VoiceStage, string> = {
+    invitation:
+      "Não foi possível aceitar este convite. Atualize a tela e tente novamente. O microfone não foi aberto.",
     microphone:
       "Não foi possível iniciar o microfone. Confira a permissão e o dispositivo de entrada do navegador.",
     agent:
@@ -31,4 +33,14 @@ export function voiceFailure(error: unknown, stage: VoiceStage): string {
       "Não foi possível publicar o microfone na Agora. Encerre e tente novamente.",
   };
   return messages[stage];
+}
+
+// Provider idle/silent is an active connection, not the pre-call screen.
+export function agentUiState(
+  state: string,
+): "connected" | "listening" | "thinking" | "speaking" | undefined {
+  if (state === "idle" || state === "silent") return "connected";
+  if (state === "listening" || state === "thinking" || state === "speaking")
+    return state;
+  return undefined;
 }

@@ -59,7 +59,7 @@ test("jornada persistida: agenda → convite → consentimento → tarefa → ac
     page.getByRole("heading", { name: "Olá, dona Helena." }),
   ).toBeVisible();
   await expect(
-    page.getByRole("button", { name: "Conversar com Lia", exact: true }),
+    page.getByRole("button", { name: "Conversar", exact: true }),
   ).toBeVisible();
   // This journey never starts audio, whether credentials exist or not.
   await expect(

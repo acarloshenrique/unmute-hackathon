@@ -7,6 +7,12 @@ import {
   relativeOnly,
   requireDemo,
 } from "./auth";
+import {
+  CAREGIVER_IDS,
+  caregiverProfile,
+  invitationMessage,
+  type CaregiverId,
+} from "./caregivers";
 import { formatTime, isQuiet, localToUtc, nextDaily, ZONE } from "./time";
 const uuid = z.string().uuid();
 const title = z.string().trim().min(1).max(160);
@@ -56,6 +62,125 @@ export function consent(profileId: string, scope: string, recipient?: string) {
     scope,
     ...(recipient ? [recipient] : []),
   );
+}
+export function getCaregiver(profileId: string) {
+  const preference = one(
+    "SELECT caregiver_id FROM caregiver_preferences WHERE care_profile_id=?",
+    profileId,
+  );
+  return caregiverProfile((preference?.caregiver_id || "lia") as CaregiverId);
+}
+export function selectCaregiver(actor: Actor, input: unknown) {
+  relativeOnly(actor);
+  const d = z
+    .object({ care_profile_id: uuid, caregiver_id: z.enum(CAREGIVER_IDS) })
+    .strict()
+    .parse(input);
+  const p = profileFor(actor, d.care_profile_id);
+  if (!consent(String(p.id), "family_updates", actor.id))
+    throw new DomainError(
+      "FORBIDDEN",
+      "Somente um familiar autorizado por esta pessoa pode escolher o estilo.",
+      403,
+    );
+  return transaction(() => {
+    run(
+      "INSERT INTO caregiver_preferences(care_profile_id,caregiver_id,updated_by,updated_at) VALUES(?,?,?,?) ON CONFLICT(care_profile_id) DO UPDATE SET caregiver_id=excluded.caregiver_id,updated_by=excluded.updated_by,updated_at=excluded.updated_at",
+      p.id,
+      d.caregiver_id,
+      actor.id,
+      now(),
+    );
+    // Pending invitations may reflect a new choice; active sessions are untouched.
+    for (const n of rows(
+      "SELECT n.id,r.prompt FROM notifications n JOIN care_events e ON e.id=n.event_id JOIN routine_runs rr ON rr.id=e.routine_run_id JOIN routines r ON r.id=rr.routine_id WHERE e.care_profile_id=? AND n.type='invitation' AND n.status='delivered' AND rr.status='invited'",
+      p.id,
+    ))
+      run(
+        "UPDATE notifications SET message=? WHERE id=?",
+        invitationMessage(d.caregiver_id, String(n.prompt)),
+        n.id,
+      );
+    audit(actor.id, "caregiver_selected", "care_profiles", String(p.id), {
+      caregiver_id: d.caregiver_id,
+    });
+    return getCaregiver(String(p.id));
+  });
+}
+function invitationFor(actor: Actor, notificationId: string) {
+  if (actor.role !== "elder")
+    throw new DomainError(
+      "FORBIDDEN",
+      "O convite deve ser respondido pela pessoa convidada.",
+      403,
+    );
+  const p = profileFor(actor);
+  const invitation = one(
+    "SELECT n.*,e.routine_run_id,rr.status AS run_status FROM notifications n JOIN care_events e ON e.id=n.event_id JOIN routine_runs rr ON rr.id=e.routine_run_id WHERE n.id=? AND n.recipient_id=? AND e.care_profile_id=? AND n.type='invitation'",
+    notificationId,
+    actor.id,
+    p.id,
+  );
+  if (!invitation)
+    throw new DomainError("FORBIDDEN", "Convite não autorizado.", 403);
+  return invitation;
+}
+export function acceptedInvitation(actor: Actor, notificationId: string) {
+  const invitation = invitationFor(actor, notificationId);
+  if (invitation.status !== "accepted" || invitation.run_status !== "invited")
+    throw new DomainError(
+      "INVITATION_CLOSED",
+      "Este convite não está disponível. Atualize a tela.",
+      409,
+    );
+  return invitation;
+}
+export function respondInvitation(actor: Actor, input: unknown) {
+  const d = z
+    .object({ notification_id: uuid, accepted: z.boolean() })
+    .strict()
+    .parse(input);
+  return transaction(() => {
+    const n = invitationFor(actor, d.notification_id);
+    if (n.status === "declined" && !d.accepted) return { status: "declined" };
+    if (n.status === "declined" || n.run_status !== "invited")
+      throw new DomainError(
+        "INVITATION_CLOSED",
+        "Este convite já foi encerrado.",
+        409,
+      );
+    if (
+      one(
+        "SELECT id FROM voice_sessions WHERE routine_run_id=? AND status IN ('starting','active','stop_failed')",
+        n.routine_run_id,
+      )
+    )
+      throw new DomainError(
+        "SESSION_EXISTS",
+        "A conversa já está em andamento.",
+        409,
+      );
+    const status = d.accepted ? "accepted" : "declined";
+    run(
+      "UPDATE notifications SET status=?,read_at=? WHERE id=?",
+      status,
+      now(),
+      n.id,
+    );
+    if (!d.accepted)
+      run(
+        "UPDATE routine_runs SET status='cancelled',completed_at=?,error_message='DECLINED' WHERE id=? AND status='invited'",
+        now(),
+        n.routine_run_id,
+      );
+    audit(
+      actor.id,
+      `invitation_${status}`,
+      "routine_runs",
+      String(n.routine_run_id),
+    );
+    return { status };
+  });
 }
 export function changeConsent(actor: Actor, input: unknown) {
   const data = z
@@ -548,7 +673,7 @@ export function executeDue(at = now(), options: { demo?: boolean } = {}) {
         p.id,
         runId,
         "invitation",
-        "Convite de conversa enviado. Aguardando resposta de Helena.",
+        `Convite de conversa com ${getCaregiver(String(p.id)).name} enviado. Aguardando resposta.`,
         "pending",
         at,
         "private",
@@ -560,7 +685,7 @@ export function executeDue(at = now(), options: { demo?: boolean } = {}) {
         e,
         null,
         "invitation",
-        String(r.prompt),
+        invitationMessage(getCaregiver(String(p.id)).id, String(r.prompt)),
       );
       audit(null, "execute_due_routine", "routine_runs", runId, {
         simulated_clock: !!options.demo,
@@ -818,6 +943,10 @@ export function snapshot(actor: Actor) {
   return {
     actor,
     profile: p,
+    caregiver: getCaregiver(String(p.id)),
+    can_choose_caregiver:
+      actor.role === "relative" &&
+      !!consent(String(p.id), "family_updates", actor.id),
     events: visibleEvents(actor),
     tasks: pendingTasks(actor, undefined, true),
     routines: rows(
@@ -841,7 +970,7 @@ export function snapshot(actor: Actor) {
         : [],
     notifications: familyConsent
       ? rows(
-          "SELECT * FROM notifications WHERE recipient_id=? ORDER BY created_at DESC LIMIT 20",
+          "SELECT n.* FROM notifications n LEFT JOIN care_events e ON e.id=n.event_id LEFT JOIN routine_runs rr ON rr.id=e.routine_run_id WHERE n.recipient_id=? AND (n.type!='invitation' OR (n.status='delivered' AND rr.status='invited')) ORDER BY n.created_at DESC LIMIT 20",
           actor.id,
         )
       : [],
@@ -877,9 +1006,15 @@ export const actionNames = [
   "confirm_proposal",
   "update_task",
   "confirm_response",
+  "select_caregiver",
+  "respond_invitation",
 ] as const;
 export function dispatch(actor: Actor, action: string, input: unknown) {
   switch (action) {
+    case "select_caregiver":
+      return selectCaregiver(actor, input);
+    case "respond_invitation":
+      return respondInvitation(actor, input);
     case "create_routine":
       return createRoutine(actor, input);
     case "change_routine":

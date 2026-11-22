@@ -22,3 +22,11 @@ CREATE INDEX IF NOT EXISTS notification_recipient ON notifications(recipient_id,
 CREATE INDEX IF NOT EXISTS voice_expiry ON voice_sessions(status,expires_at);
 CREATE INDEX IF NOT EXISTS audit_time ON audit_logs(timestamp);
 CREATE UNIQUE INDEX IF NOT EXISTS one_active_voice ON voice_sessions(actor_id) WHERE status IN ('starting','active','stop_failed');
+
+-- Preferência por pessoa; estilos fixos, sem alterar timbre ou consentimentos.
+CREATE TABLE IF NOT EXISTS caregiver_preferences(
+  care_profile_id TEXT PRIMARY KEY REFERENCES care_profiles(id) ON DELETE CASCADE,
+  caregiver_id TEXT NOT NULL CHECK(caregiver_id IN ('lia','clara','rosa')),
+  updated_by TEXT NOT NULL REFERENCES members(id),
+  updated_at TEXT NOT NULL
+);

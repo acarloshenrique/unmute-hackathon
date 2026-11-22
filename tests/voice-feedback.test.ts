@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { voiceFailure } from "../lib/voice-feedback";
+import { voiceFailure, agentUiState } from "../lib/voice-feedback";
 describe("mensagens seguras da voz", () => {
   it("identifica falta de saldo sem reproduzir dados privados do provedor", () => {
     const result = voiceFailure(
@@ -39,4 +39,15 @@ describe("mensagens seguras da voz", () => {
     ).not.toContain("fixture-secret");
     expect(voiceFailure(null, "rtc")).toContain("Agora RTC");
   });
+});
+
+it("idle e silent do agente mantêm a conexão ativa e os controles de encerramento", () => {
+  expect(agentUiState("idle")).toBe("connected");
+  expect(agentUiState("silent")).toBe("connected");
+});
+it("somente eventos conhecidos mudam o estado sem inventar escuta ou fala", () => {
+  expect(agentUiState("speaking")).toBe("speaking");
+  expect(agentUiState("thinking")).toBe("thinking");
+  expect(agentUiState("listening")).toBe("listening");
+  expect(agentUiState("unknown")).toBeUndefined();
 });

@@ -4,7 +4,7 @@ const { RtcTokenBuilder, RtcRole } = AgoraToken;
 import { randomBytes, randomInt } from "node:crypto";
 import { type Actor, DomainError, hash, profileFor } from "./auth";
 import { audit, id, now, one, rows, run } from "./db";
-import { consent } from "./domain";
+import { consent, getCaregiver, acceptedInvitation } from "./domain";
 import { createManagedAgent } from "./managed-agent";
 export const AGENT_UID = 123456;
 function configuration() {
@@ -56,7 +56,7 @@ const clientFor = (c: { appId: string; appCertificate: string }) =>
     appId: c.appId,
     appCertificate: c.appCertificate,
   });
-export async function startVoice(actor: Actor) {
+export async function startVoice(actor: Actor, invitationId?: string) {
   if (actor.role !== "elder")
     throw new DomainError(
       "ELDER_REQUIRED",
@@ -70,6 +70,7 @@ export async function startVoice(actor: Actor) {
       "Autorize conversas com Lia primeiro.",
       403,
     );
+  const caregiver = getCaregiver(String(p.id));
   const c = configuration();
   await cleanupExpired();
   if (
@@ -88,10 +89,12 @@ export async function startVoice(actor: Actor) {
     uid = randomInt(1000, 9999000),
     capability = randomBytes(32).toString("hex"),
     expires = new Date(Date.now() + 15 * 60000).toISOString();
-  const invitation = one(
-    "SELECT rr.id FROM routine_runs rr JOIN routines r ON r.id=rr.routine_id WHERE r.care_profile_id=? AND rr.status='invited' ORDER BY rr.scheduled_at DESC",
-    p.id,
-  );
+  const invitation = invitationId
+    ? { id: acceptedInvitation(actor, invitationId).routine_run_id }
+    : one(
+        "SELECT rr.id FROM routine_runs rr JOIN routines r ON r.id=rr.routine_id WHERE r.care_profile_id=? AND rr.status='invited' ORDER BY rr.scheduled_at DESC",
+        p.id,
+      );
   run(
     "INSERT INTO voice_sessions VALUES(?,?,?,?,?,?,?,?,?,?,?,?)",
     sessionId,
@@ -109,7 +112,13 @@ export async function startVoice(actor: Actor) {
   );
   let startedAgentId: string | undefined;
   try {
-    const agent = createManagedAgent(c, sessionId, capability);
+    const agent = createManagedAgent(
+      c,
+      sessionId,
+      capability,
+      caregiver.id,
+      String(p.display_name),
+    );
     const session = agent.createSession({
       channel,
       agentUid: String(AGENT_UID),
@@ -127,6 +136,7 @@ export async function startVoice(actor: Actor) {
     );
     audit(actor.id, "voice_agent_started", "voice_sessions", sessionId, {
       mode: "agora_managed",
+      caregiver_id: caregiver.id,
     });
     const ttl = 900;
     const token = RtcTokenBuilder.buildTokenWithRtm(
@@ -140,6 +150,7 @@ export async function startVoice(actor: Actor) {
     );
     return {
       session_id: sessionId,
+      caregiver,
       app_id: c.appId,
       channel,
       uid,

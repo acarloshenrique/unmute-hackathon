@@ -100,6 +100,7 @@ export function resetDemo() {
     throw new Error("Encerre as sessões de voz antes de reiniciar.");
   transaction(() => {
     for (const table of [
+      "caregiver_preferences",
       "notifications",
       "audit_logs",
       "proposals",
